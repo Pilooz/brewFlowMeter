@@ -65,7 +65,7 @@ void setup() {
   useInterrupt(true);
 }
 
-void displayInSerial(float liters) {
+void toSerial(float liters) {
   if (pulsesOld != pulses) {
     Serial.print("Freq: "); 
     Serial.println(flowrate);
@@ -77,14 +77,19 @@ void displayInSerial(float liters) {
   }
 }
 
-void loop() // run over and over again
-{
+void toLCD(float liter) {
   //lcd.setCursor(0, 0);
   //lcd.print("Pulses:"); lcd.print(pulses, DEC);
   //lcd.print(" Hz:");
   //lcd.print(flowrate);
   //lcd.print(flowrate);
-  // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
+  //lcd.setCursor(0, 1);
+  //lcd.print(liters); lcd.print(" Liters ");
+}
+
+void loop() // run over and over again
+{
+   // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
   // Liters = Q * time elapsed (seconds) / 60 (seconds/minute)
   // Liters = (Frequency (Pulses/second) / 7.5) * time elapsed (seconds) / 60
   // Liters = Pulses / (7.5 * 60)
@@ -94,10 +99,9 @@ void loop() // run over and over again
   liters -= 6;
   liters /= 60.0;
 
-  displayInSerial(liters);
-
-  //lcd.setCursor(0, 1);
-  //lcd.print(liters); lcd.print(" Liters ");
+  //toLCD(liters);
+  toSerial(liters);
+  
   delay(100);
 }
 
