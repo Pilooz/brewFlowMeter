@@ -19,6 +19,8 @@
 #define FLOWSENSORPIN 2
 // count how many pulses!
 volatile uint16_t pulses = 0;
+// debounce display
+volatile uint16_t pulsesOld = 0;
 // track the state of the pulse pin
 volatile uint8_t lastflowpinstate;
 // you can try to keep time of how long it is between pulses
@@ -62,6 +64,19 @@ void setup() {
   lastflowpinstate = digitalRead(FLOWSENSORPIN);
   useInterrupt(true);
 }
+
+void displayInSerial(float liters) {
+  if (pulsesOld != pulses) {
+    Serial.print("Freq: "); 
+    Serial.println(flowrate);
+    Serial.print("Pulses: "); 
+    Serial.println(pulses, DEC);
+    Serial.print(liters); 
+    Serial.println(" Liters");
+    pulsesOld = pulses;
+  }
+}
+
 void loop() // run over and over again
 {
   //lcd.setCursor(0, 0);
@@ -69,10 +84,6 @@ void loop() // run over and over again
   //lcd.print(" Hz:");
   //lcd.print(flowrate);
   //lcd.print(flowrate);
-  Serial.print("Freq: "); 
-  Serial.println(flowrate);
-  Serial.print("Pulses: "); 
-  Serial.println(pulses, DEC);
   // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
   // Liters = Q * time elapsed (seconds) / 60 (seconds/minute)
   // Liters = (Frequency (Pulses/second) / 7.5) * time elapsed (seconds) / 60
@@ -83,9 +94,10 @@ void loop() // run over and over again
   liters -= 6;
   liters /= 60.0;
 
-  Serial.print(liters); 
-  Serial.println(" Liters");
+  displayInSerial(liters);
+
   //lcd.setCursor(0, 1);
   //lcd.print(liters); lcd.print(" Liters ");
   delay(100);
 }
+
