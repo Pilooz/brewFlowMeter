@@ -21,6 +21,8 @@
 volatile uint16_t pulses = 0;
 // debounce display
 volatile uint16_t pulsesOld = 0;
+// Total pulses
+uint16_t totalPulses = 0;
 // track the state of the pulse pin
 volatile uint8_t lastflowpinstate;
 // you can try to keep time of how long it is between pulses
@@ -42,6 +44,7 @@ SIGNAL(TIMER0_COMPA_vect) {
   flowrate = 1000.0;
   flowrate /= lastflowratetimer; // in hertz
   lastflowratetimer = 0;
+  totalPulses = pulses;
 }
 void useInterrupt(boolean v) {
   if (v) {
@@ -73,6 +76,12 @@ void toSerial(float liters) {
     Serial.println(pulses, DEC);
     Serial.print(liters); 
     Serial.println(" Liters");
+    
+    Serial.print("Total Pulses: "); 
+    Serial.println(totalPulses, DEC);
+    Serial.print("Total Liters: "); 
+    Serial.print(calculateLiters(totalPulses)); 
+    Serial.println(" L");
     pulsesOld = pulses;
   }
 }
@@ -89,17 +98,22 @@ void toLCD(float liter) {
   }
 }
 
-void loop() // run over and over again
-{
+float calculateLiters(uint16_t p) {
   // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
   // Liters = Q * time elapsed (seconds) / 60 (seconds/minute)
   // Liters = (Frequency (Pulses/second) / 7.5) * time elapsed (seconds) / 60
   // Liters = Pulses / (7.5 * 60)
   // if a brass sensor use the following calculation
-  float liters = pulses;
-  liters /= 8.1;
-  liters -= 6;
-  liters /= 60.0;
+  float l = p;
+  l /= 8.1;
+  l -= 6;
+  l /= 60.0;
+  return l;
+}
+
+void loop() // run over and over again
+{
+  float liters = calculateLiters(pulses);
 
   //toLCD(liters);
   toSerial(liters);
