@@ -1,22 +1,30 @@
 /**********************************************************
- * This is example code for using the Adafruit liquid flow meters.
- * Tested and works great with the Adafruit plastic and brass meters
- * ------> http://www.adafruit.com/products/828
- * ------> http://www.adafruit.com/products/833
+ * Liquid flow meters :
  * Connect the red wire to +5V,
  * the black wire to common ground
  * and the yellow sensor wire to pin #2
- * Adafruit invests time and resources providing this open source code,
- * please support Adafruit and open-source hardware by purchasing
- * products from Adafruit!
- * Written by Limor Fried/Ladyada for Adafruit Industries.
+ * Interruption is 0 on pin #2
+ *
+ * Rotary encoder :
+ * Pin A on Arduino's pin #3
+ * Pin B on Arduino's pin #4
+ *
+ * Liquid flow meters has been written by Limor Fried/Ladyada 
+ * for Adafruit Industries.
  * BSD license, check license.txt for more information
  * All text above must be included in any redistribution
  **********************************************************/
 //include "LiquidCrystal.h"
-//LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
-// which pin to use for reading the sensor? can use any pin!
+
+// Liquid Flow sensor
 #define FLOWSENSORPIN 2
+// Rotary encoder
+#define encoder0PinA  3
+#define encoder0PinB  4
+// Liquid Crystal display
+//LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+
+// Liquid Flow meter variables
 // count how many pulses!
 volatile uint16_t pulses = 0;
 // debounce display
@@ -29,6 +37,14 @@ volatile uint8_t lastflowpinstate;
 volatile uint32_t lastflowratetimer = 0;
 // and use that to calculate a flow rate
 volatile float flowrate;
+
+// Rotary encoder variables
+volatile int encoder0Pos = 0;
+volatile int encoder0PosOld = 0;
+volatile boolean PastA = 0;
+volatile boolean PastB = 0;
+
+
 // Interrupt is called once a millisecond, looks for any pulses from the sensor!
 SIGNAL(TIMER0_COMPA_vect) {
   uint8_t x = digitalRead(FLOWSENSORPIN);
@@ -46,6 +62,7 @@ SIGNAL(TIMER0_COMPA_vect) {
   lastflowratetimer = 0;
   totalPulses = pulses;
 }
+
 void useInterrupt(boolean v) {
   if (v) {
     // Timer0 is already used for millis() - we'll just interrupt somewhere
@@ -58,31 +75,56 @@ void useInterrupt(boolean v) {
     TIMSK0 &= ~_BV(OCIE0A);
   }
 }
+/*************************************************
+ * Setup
+ **************************************************/
 void setup() {
+  //Serial
   Serial.begin(9600);
-  Serial.print("Flow sensor test!");
+  Serial.print("Flow sensor and rotary encoder test!");
+
+  // LCD
   //lcd.begin(16, 2);
+
+  // Liquid Flow meter
   pinMode(FLOWSENSORPIN, INPUT);
   digitalWrite(FLOWSENSORPIN, HIGH);
   lastflowpinstate = digitalRead(FLOWSENSORPIN);
+
+  // Rotary encoder
+  pinMode(encoder0PinA, INPUT_PULLUP);
+  pinMode(encoder0PinB, INPUT_PULLUP); 
+  PastA = (boolean)digitalRead(encoder0PinA); //initial value of channel A;
+  PastB = (boolean)digitalRead(encoder0PinB); //and channel B
+
+  // Interuptions
+  // Keep interruption for ButtonPress, not for rotary encoder
+  // rotary encoder A channel on interrupt 1 (arduino's pin 3)
+  //attachInterrupt(1, doEncoderA, RISING);
+  // rotary encoder B channel pin on interrupt 2 (arduino's pin 4)
+  //attachInterrupt(21, doEncoderB, CHANGE); 
   useInterrupt(true);
 }
 
 void toSerial(float liters) {
-  if (pulsesOld != pulses) {
+  if (pulsesOld != pulses || encoder0PosOld != encoder0Pos) {
     Serial.print("Freq: "); 
     Serial.println(flowrate);
     Serial.print("Pulses: "); 
     Serial.println(pulses, DEC);
     Serial.print(liters); 
     Serial.println(" Liters");
-    
+
     Serial.print("Total Pulses: "); 
     Serial.println(totalPulses, DEC);
     Serial.print("Total Liters: "); 
     Serial.print(calculateLiters(totalPulses)); 
     Serial.println(" L");
+     Serial.print("Encoder value: "); 
+    Serial.println(encoder0Pos);
+   
     pulsesOld = pulses;
+    encoder0PosOld = encoder0Pos;
   }
 }
 
@@ -117,8 +159,19 @@ void loop() // run over and over again
 
   //toLCD(liters);
   toSerial(liters);
-
+  
   delay(100);
+}
+
+/*************************************************
+ * Interruptions
+ **************************************************/
+void doEncoderA(){
+  PastB ? encoder0Pos--:  encoder0Pos++;
+}
+
+void doEncoderB(){
+  PastB = !PastB; 
 }
 
 
