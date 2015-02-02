@@ -1,6 +1,7 @@
 # brewFlowMeter
 An Arduino based flowmeter for home brewing
- _Work in Progress_
+ 
+ *_Work in Progress, nothing already done yet..._*
  
 ## Features
 ### Solenoid Valve : 
