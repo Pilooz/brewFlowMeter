@@ -16,5 +16,5 @@ It's controled by the Arduino. By default, it is closed.
 Its background color is sofware controled :
   - blue when the solenoid valve is closed.
   - Green when solenoid valve is open
-    -> goes to *orange and *red* as water volume flowed reaches the disired volume of water.
+    -> goes to *orange* and *red* as water volume flowed reaches the disired volume of water.
   - pink when setting desired quantity ?
