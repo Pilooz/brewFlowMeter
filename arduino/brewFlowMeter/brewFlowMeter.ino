@@ -14,7 +14,9 @@
  * BSD license, check license.txt for more information
  * All text above must be included in any redistribution
  **********************************************************/
-include "LiquidCrystal.h"
+//include "LiquidCrystal.h"
+#include <LiquidCrystal.h>
+#include <Wire.h>
 
 // Liquid Flow sensor
 #define FLW 2
@@ -22,7 +24,11 @@ include "LiquidCrystal.h"
 #define REA  A0
 #define REB  A1
 #define REPUSH A2 
-// 
+// LCD
+#define LCD_R 3
+#define LCD_G 5
+#define LCD_B 6
+
 // Liquid Crystal display
 LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
 
@@ -47,7 +53,11 @@ volatile boolean encoder_A = 0;
 volatile boolean encoder_B = 0;
 
 // LCD variables
+lcd_backlight_r
 
+/*************************************************
+ * interruptions for flowsensor reading.
+ **************************************************/
 // Interrupt is called once a millisecond, looks for any flw_pulses from the sensor!
 SIGNAL(TIMER0_COMPA_vect) {
   uint8_t x = digitalRead(FLW);
@@ -66,7 +76,7 @@ SIGNAL(TIMER0_COMPA_vect) {
   flw_total_pulses = flw_pulses;
 }
 
-void useInterrupt(boolean v) {
+void flw_interrupt(boolean v) {
   if (v) {
     // Timer0 is already used for millis() - we'll just interrupt somewhere
     // in the middle and call the "Compare A" function above
@@ -78,38 +88,46 @@ void useInterrupt(boolean v) {
     TIMSK0 &= ~_BV(OCIE0A);
   }
 }
+
 /*************************************************
- * Setup
+ * Setup for lcd
  **************************************************/
-void setup() {
-  //Serial
-  Serial.begin(9600);
-  Serial.print("Flow sensor and rotary encoder test!");
+void lcd_setup() {
+  lcd.begin(16, 2);
+  lcd.clear();
+}
 
-  // LCD
-  //lcd.begin(16, 2);
-
-  // Liquid Flow meter
+/*************************************************
+ * Setup for flowsensor
+ **************************************************/
+void flw_setup() {
   pinMode(FLW, INPUT);
   digitalWrite(FLW, HIGH);
   flw_last_pinstate = digitalRead(FLW);
+}
 
-  // Rotary encoder
+/*************************************************
+ * Setup for serial
+ **************************************************/
+void serial_setup() {
+  Serial.begin(9600);
+  Serial.print("Flow sensor and rotary encoder test!");
+}
+
+/*************************************************
+ * Setup for rotary encoder
+ **************************************************/
+void encoder_setup() {
   pinMode(REA, INPUT_PULLUP);
   pinMode(REB, INPUT_PULLUP); 
   encoder_A = (boolean)digitalRead(REA); //initial value of channel A;
   encoder_B = (boolean)digitalRead(REB); //and channel B
-
-  // Interuptions
-  // Keep interruption for ButtonPress, not for rotary encoder
-  // rotary encoder A channel on interrupt 1 (arduino's pin 3)
-  //attachInterrupt(1, doEncoderA, RISING);
-  // rotary encoder B channel pin on interrupt 2 (arduino's pin 4)
-  //attachInterrupt(21, doEncoderB, CHANGE); 
-  useInterrupt(true);
 }
 
-void toSerial(float liters) {
+/*************************************************
+ * Displaying data on serial
+ **************************************************/
+void serial_display(float liters) {
   if (flw_pulses_old != flw_pulses || encoder_oldpos != encoder_pos) {
     Serial.print("Freq: "); 
     Serial.println(flw_rate);
@@ -131,18 +149,24 @@ void toSerial(float liters) {
   }
 }
 
-void toLCD(float liter) {
+/*************************************************
+ * Displaying data on lcd
+ **************************************************/
+void lcd_display(float liter) {
   if (flw_pulses_old != flw_pulses) {
-    //lcd.setCursor(0, 0);
-    //lcd.print("flw_pulses:"); lcd.print(flw_pulses, DEC);
-    //lcd.print(" Hz:");
-    //lcd.print(flw_rate);
-    //lcd.print(flw_rate);
-    //lcd.setCursor(0, 1);
-    //lcd.print(liters); lcd.print(" Liters ");
+    lcd.setCursor(0, 0);
+    lcd.print("flw_pulses:"); lcd.print(flw_pulses, DEC);
+    lcd.print(" Hz:");
+    lcd.print(flw_rate);
+    lcd.print(flw_rate);
+    lcd.setCursor(0, 1);
+    lcd.print(liters); lcd.print(" Liters ");
   }
 }
 
+/*************************************************
+ * volume calculations
+ **************************************************/
 float calculateLiters(uint16_t p) {
   // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
   // Liters = Q * time elapsed (seconds) / 60 (seconds/minute)
@@ -156,19 +180,39 @@ float calculateLiters(uint16_t p) {
   return l;
 }
 
+/*************************************************
+ * Setup
+ **************************************************/
+void setup() {
+  //Serial
+  //serial_setup();
+
+  // LCD
+  lcd_setup();
+  
+  // Liquid Flow meter
+  flw_setup();
+  
+  // Rotary encoder
+  encoder_setup();
+  
+  // setting Interuptions for flow sensor
+  flw_interrupt(true);
+}
+
 void loop() // run over and over again
 {
   float liters = calculateLiters(flw_pulses);
 
-  //toLCD(liters);
-  toSerial(liters);
+  lcd_display(liters);
+  //serial_display(liters);
   
   delay(100);
 }
 
 /*************************************************
  * Interruptions
- **************************************************/
+ **************************************************
 void doEncoderA(){
   encoder_B ? encoder_pos--:  encoder_pos++;
 }
@@ -176,5 +220,5 @@ void doEncoderA(){
 void doEncoderB(){
   encoder_B = !encoder_B; 
 }
-
+*/
 
