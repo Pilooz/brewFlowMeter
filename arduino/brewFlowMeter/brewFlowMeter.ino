@@ -14,53 +14,56 @@
  * BSD license, check license.txt for more information
  * All text above must be included in any redistribution
  **********************************************************/
-//include "LiquidCrystal.h"
+include "LiquidCrystal.h"
 
 // Liquid Flow sensor
-#define FLOWSENSORPIN 2
+#define FLW 2
 // Rotary encoder
-#define encoder0PinA  3
-#define encoder0PinB  4
+#define REA  A0
+#define REB  A1
+#define REPUSH A2 
+// 
 // Liquid Crystal display
-//LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
 
 // Liquid Flow meter variables
-// count how many pulses!
-volatile uint16_t pulses = 0;
+// count how many flw_pulses!
+volatile uint16_t flw_pulses = 0;
 // debounce display
-volatile uint16_t pulsesOld = 0;
-// Total pulses
-uint16_t totalPulses = 0;
+volatile uint16_t flw_pulses_old = 0;
+// Total flw_pulses
+uint16_t flw_total_pulses = 0;
 // track the state of the pulse pin
-volatile uint8_t lastflowpinstate;
-// you can try to keep time of how long it is between pulses
-volatile uint32_t lastflowratetimer = 0;
+volatile uint8_t flw_last_pinstate;
+// you can try to keep time of how long it is between flw_pulses
+volatile uint32_t flw_last_ratetimer = 0;
 // and use that to calculate a flow rate
-volatile float flowrate;
+volatile float flw_rate;
 
 // Rotary encoder variables
-volatile int encoder0Pos = 0;
-volatile int encoder0PosOld = 0;
-volatile boolean PastA = 0;
-volatile boolean PastB = 0;
+volatile int encoder_pos = 0;
+volatile int encoder_oldpos = 0;
+volatile boolean encoder_A = 0;
+volatile boolean encoder_B = 0;
 
+// LCD variables
 
-// Interrupt is called once a millisecond, looks for any pulses from the sensor!
+// Interrupt is called once a millisecond, looks for any flw_pulses from the sensor!
 SIGNAL(TIMER0_COMPA_vect) {
-  uint8_t x = digitalRead(FLOWSENSORPIN);
-  if (x == lastflowpinstate) {
-    lastflowratetimer++;
+  uint8_t x = digitalRead(FLW);
+  if (x == flw_last_pinstate) {
+    flw_last_ratetimer++;
     return; // nothing changed!
   }
   if (x == HIGH) {
     //low to high transition!
-    pulses++;
+    flw_pulses++;
   }
-  lastflowpinstate = x;
-  flowrate = 1000.0;
-  flowrate /= lastflowratetimer; // in hertz
-  lastflowratetimer = 0;
-  totalPulses = pulses;
+  flw_last_pinstate = x;
+  flw_rate = 1000.0;
+  flw_rate /= flw_last_ratetimer; // in hertz
+  flw_last_ratetimer = 0;
+  flw_total_pulses = flw_pulses;
 }
 
 void useInterrupt(boolean v) {
@@ -87,15 +90,15 @@ void setup() {
   //lcd.begin(16, 2);
 
   // Liquid Flow meter
-  pinMode(FLOWSENSORPIN, INPUT);
-  digitalWrite(FLOWSENSORPIN, HIGH);
-  lastflowpinstate = digitalRead(FLOWSENSORPIN);
+  pinMode(FLW, INPUT);
+  digitalWrite(FLW, HIGH);
+  flw_last_pinstate = digitalRead(FLW);
 
   // Rotary encoder
-  pinMode(encoder0PinA, INPUT_PULLUP);
-  pinMode(encoder0PinB, INPUT_PULLUP); 
-  PastA = (boolean)digitalRead(encoder0PinA); //initial value of channel A;
-  PastB = (boolean)digitalRead(encoder0PinB); //and channel B
+  pinMode(REA, INPUT_PULLUP);
+  pinMode(REB, INPUT_PULLUP); 
+  encoder_A = (boolean)digitalRead(REA); //initial value of channel A;
+  encoder_B = (boolean)digitalRead(REB); //and channel B
 
   // Interuptions
   // Keep interruption for ButtonPress, not for rotary encoder
@@ -107,34 +110,34 @@ void setup() {
 }
 
 void toSerial(float liters) {
-  if (pulsesOld != pulses || encoder0PosOld != encoder0Pos) {
+  if (flw_pulses_old != flw_pulses || encoder_oldpos != encoder_pos) {
     Serial.print("Freq: "); 
-    Serial.println(flowrate);
-    Serial.print("Pulses: "); 
-    Serial.println(pulses, DEC);
+    Serial.println(flw_rate);
+    Serial.print("flw_pulses: "); 
+    Serial.println(flw_pulses, DEC);
     Serial.print(liters); 
     Serial.println(" Liters");
 
-    Serial.print("Total Pulses: "); 
-    Serial.println(totalPulses, DEC);
+    Serial.print("Total flw_pulses: "); 
+    Serial.println(flw_total_pulses, DEC);
     Serial.print("Total Liters: "); 
-    Serial.print(calculateLiters(totalPulses)); 
+    Serial.print(calculateLiters(flw_total_pulses)); 
     Serial.println(" L");
      Serial.print("Encoder value: "); 
-    Serial.println(encoder0Pos);
+    Serial.println(encoder_pos);
    
-    pulsesOld = pulses;
-    encoder0PosOld = encoder0Pos;
+    flw_pulses_old = flw_pulses;
+    encoder_oldpos = encoder_pos;
   }
 }
 
 void toLCD(float liter) {
-  if (pulsesOld != pulses) {
+  if (flw_pulses_old != flw_pulses) {
     //lcd.setCursor(0, 0);
-    //lcd.print("Pulses:"); lcd.print(pulses, DEC);
+    //lcd.print("flw_pulses:"); lcd.print(flw_pulses, DEC);
     //lcd.print(" Hz:");
-    //lcd.print(flowrate);
-    //lcd.print(flowrate);
+    //lcd.print(flw_rate);
+    //lcd.print(flw_rate);
     //lcd.setCursor(0, 1);
     //lcd.print(liters); lcd.print(" Liters ");
   }
@@ -143,8 +146,8 @@ void toLCD(float liter) {
 float calculateLiters(uint16_t p) {
   // Sensor Frequency (Hz) = 7.5 * Q (Liters/min)
   // Liters = Q * time elapsed (seconds) / 60 (seconds/minute)
-  // Liters = (Frequency (Pulses/second) / 7.5) * time elapsed (seconds) / 60
-  // Liters = Pulses / (7.5 * 60)
+  // Liters = (Frequency (flw_pulses/second) / 7.5) * time elapsed (seconds) / 60
+  // Liters = flw_pulses / (7.5 * 60)
   // if a brass sensor use the following calculation
   float l = p;
   l /= 8.1;
@@ -155,7 +158,7 @@ float calculateLiters(uint16_t p) {
 
 void loop() // run over and over again
 {
-  float liters = calculateLiters(pulses);
+  float liters = calculateLiters(flw_pulses);
 
   //toLCD(liters);
   toSerial(liters);
@@ -167,11 +170,11 @@ void loop() // run over and over again
  * Interruptions
  **************************************************/
 void doEncoderA(){
-  PastB ? encoder0Pos--:  encoder0Pos++;
+  encoder_B ? encoder_pos--:  encoder_pos++;
 }
 
 void doEncoderB(){
-  PastB = !PastB; 
+  encoder_B = !encoder_B; 
 }
 
 
