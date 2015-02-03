@@ -24,3 +24,6 @@ Its background color is sofware controled :
   - Green when solenoid valve is open
     -> goes to *orange* and *red* as water volume flowed reaches the desired volume of water.
   - pink when setting desired quantity ?
+
+## Links
+- Backlight RGB display https://learn.adafruit.com/character-lcds/rgb-backlit-lcds
