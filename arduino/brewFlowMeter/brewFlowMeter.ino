@@ -24,7 +24,7 @@
 #define REA  A0
 #define REB  A1
 #define REPUSH A2 
-// LCD
+// LCD Backlight control
 #define LCD_R 3
 #define LCD_G 5
 #define LCD_B 6
@@ -93,6 +93,10 @@ void flw_interrupt(boolean v) {
  * Setup for lcd
  **************************************************/
 void lcd_setup() {
+  // Setupbacklight color.
+  pinMode(LCD_R, OUTPUT);
+  pinMode(LCD_G, OUTPUT);
+  pinMode(LCD_B, OUTPUT);
   lcd.begin(16, 2);
   lcd.clear();
 }
