@@ -31,7 +31,7 @@
 #define LCD_G 6
 #define LCD_B 9
 
-// Solenoid Valve
+// Solenoid Valve, on 13 to have build-in Led status.
 #define VLV 13
 
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
@@ -63,7 +63,9 @@ volatile boolean encoder_B = 0;
 int lcd_brightness = 100;
 
 // Valve variables
- int vlv_status = 0;
+int vlv_status = 0;
+
+// Application variables
 
 /*************************************************
  * interruptions for flowsensor reading.
@@ -250,6 +252,10 @@ void setup() {
 
 void loop() // run over and over again
 {
+  // 1. Read all inputs with debounce
+  // 1.1 read rotaty encoder
+  // 2. read global application state
+  
   float liters = calculateLiters(flw_pulses);
   lcd_display(liters);
   //serial_display(liters);
@@ -267,5 +273,6 @@ void loop() // run over and over again
  * encoder_B = !encoder_B; 
  * }
  */
+
 
 
