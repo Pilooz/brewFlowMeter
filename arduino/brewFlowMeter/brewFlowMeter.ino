@@ -53,7 +53,7 @@ volatile boolean encoder_A = 0;
 volatile boolean encoder_B = 0;
 
 // LCD variables
-lcd_backlight_r
+int lcd_brightness = 100;
 
 /*************************************************
  * interruptions for flowsensor reading.
@@ -145,9 +145,9 @@ void serial_display(float liters) {
     Serial.print("Total Liters: "); 
     Serial.print(calculateLiters(flw_total_pulses)); 
     Serial.println(" L");
-     Serial.print("Encoder value: "); 
+    Serial.print("Encoder value: "); 
     Serial.println(encoder_pos);
-   
+
     flw_pulses_old = flw_pulses;
     encoder_oldpos = encoder_pos;
   }
@@ -159,13 +159,34 @@ void serial_display(float liters) {
 void lcd_display(float liter) {
   if (flw_pulses_old != flw_pulses) {
     lcd.setCursor(0, 0);
-    lcd.print("flw_pulses:"); lcd.print(flw_pulses, DEC);
+    lcd.print("flw_pulses:"); 
+    lcd.print(flw_pulses, DEC);
     lcd.print(" Hz:");
     lcd.print(flw_rate);
     lcd.print(flw_rate);
     lcd.setCursor(0, 1);
-    lcd.print(liters); lcd.print(" Liters ");
+    lcd.print(liters); 
+    lcd.print(" Liters ");
   }
+}
+
+/*************************************************
+ * set backlight color on lcd
+ **************************************************/
+void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
+  // normalize the red LED - its brighter than the rest!
+  r = map(r, 0, 255, 0, 100);
+  g = map(g, 0, 255, 0, 150);
+  r = map(r, 0, 255, 0, lcd_brightness);
+  g = map(g, 0, 255, 0, lcd_brightness);
+  b = map(b, 0, 255, 0, lcd_brightness);
+  // common anode so invert!
+  r = map(r, 0, 255, 255, 0);
+  g = map(g, 0, 255, 255, 0);
+  b = map(b, 0, 255, 255, 0);
+  analogWrite(REDLITE, r);
+  analogWrite(GREENLITE, g);
+  analogWrite(BLUELITE, b);
 }
 
 /*************************************************
@@ -193,13 +214,13 @@ void setup() {
 
   // LCD
   lcd_setup();
-  
+
   // Liquid Flow meter
   flw_setup();
-  
+
   // Rotary encoder
   encoder_setup();
-  
+
   // setting Interuptions for flow sensor
   flw_interrupt(true);
 }
@@ -210,19 +231,20 @@ void loop() // run over and over again
 
   lcd_display(liters);
   //serial_display(liters);
-  
+
   delay(100);
 }
 
 /*************************************************
  * Interruptions
  **************************************************
-void doEncoderA(){
-  encoder_B ? encoder_pos--:  encoder_pos++;
-}
+ * void doEncoderA(){
+ * encoder_B ? encoder_pos--:  encoder_pos++;
+ * }
+ * 
+ * void doEncoderB(){
+ * encoder_B = !encoder_B; 
+ * }
+ */
 
-void doEncoderB(){
-  encoder_B = !encoder_B; 
-}
-*/
 
