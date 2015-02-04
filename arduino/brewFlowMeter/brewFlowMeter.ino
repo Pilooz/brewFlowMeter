@@ -25,6 +25,9 @@
 #define REPUSH 3 
 #define REA  7
 #define REB  8
+// event on encoder push button
+#define RE_WAIT 0
+#define RE_PUSHED 1
 
 // LCD Backlight control, PWM pins
 #define LCD_R 5
@@ -77,6 +80,7 @@ volatile int encoder_pos = 0;
 volatile int encoder_oldpos = 0;
 volatile boolean encoder_A = 0;
 volatile boolean encoder_B = 0;
+int encoder_button_state = 0;
 
 // LCD variables
 int lcd_brightness = 100;
@@ -167,10 +171,25 @@ void serial_setup() {
 void encoder_setup() {
   pinMode(REA, INPUT_PULLUP);
   pinMode(REB, INPUT_PULLUP); 
-  encoder_A = (boolean)digitalRead(REA); //initial value of channel A;
+  encoder_button_state = RE_WAIT;
+  encoder_read();
+}
+
+/*************************************************
+ * reading values on Encoder PinA and Pin B
+ **************************************************/
+void encoder_read() {
+  encoder_A = (boolean)digitalRead(REA); //value of channel A;
   encoder_B = (boolean)digitalRead(REB); //and channel B
 }
 
+/*************************************************
+ * setting encoder event to pushed 
+ * (when encoder button is pushed)
+ **************************************************/
+void encoder_pushed(){
+  encoder_button_state = RE_PUSHED;
+}
 /*************************************************
  * Setup initial state for application
  **************************************************/
@@ -299,33 +318,51 @@ void setup() {
   // Setting initial state for screen application 
   app_setup();
   
-  // setting Interuptions for flow sensor
+  // setting Interruptions for flow sensor
   flw_interrupt(true);
+  // setting interruptions for encoder push action
+  attachInterrupt(1, encoder_pushed, RISING);
 }
 
 void loop() // run over and over again
 {
   // 1. Read all inputs with debounce
-  // 1.1 read rotaty encoder
+  //1.1 reading rotary encoder pins A & B (Push event is on interrupt 1)
+  encoder_read();
   // 2. read global application state
-  
+  switch (app_get_state()) {
+    case APP_WAITING:    
+      // App is waiting for sensors or buttons changes : Valve is closed
+      // displaying current passing volume, desired volume, total volume, flowrate
+      // push button may open valve after APP_CONFIRM mode
+      break;
+    case APP_RUNNING:    
+      // App is running water thru valve : valve is opened
+      // displaying current passing volume, desired volume, total volume, flowrate
+      // push button may interrupt to close valve and return to APP_WAITING mode
+      break;
+    case APP_SETTING:    
+      // App is in setting mode, valve is closed
+      // displying 'setting mode' on first line and desired volume to adjust on second line
+      // turing the rotary encoder adjust disered volume of water,
+      // push button may set adjusted volume of water and return to APP_WAITING mode
+      break;
+    case APP_CONFIRM:    
+      // App is in confirmation mode, valve is closed
+      // displaying a confirmation message on first line and  yes | no choice on second line.
+      // push button may set desired volume and return to APP_WAITING mode
+      break;
+    default:
+      // see if we need to reset something ?
+      break;
+    } 
+
   float liters = calculateLiters(flw_pulses);
   lcd_display(liters);
   //serial_display(liters);
   delay(100);
 }
 
-/*************************************************
- * Interruptions
- **************************************************
- * void doEncoderA(){
- * encoder_B ? encoder_pos--:  encoder_pos++;
- * }
- * 
- * void doEncoderB(){
- * encoder_B = !encoder_B; 
- * }
- */
 
 
 
