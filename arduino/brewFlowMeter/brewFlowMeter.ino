@@ -156,7 +156,7 @@ void serial_display(float liters) {
 /*************************************************
  * Displaying data on lcd
  **************************************************/
-void lcd_display(float liter) {
+void lcd_display(float liters) {
   if (flw_pulses_old != flw_pulses) {
     lcd.setCursor(0, 0);
     lcd.print("flw_pulses:"); 
@@ -184,9 +184,9 @@ void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
   r = map(r, 0, 255, 255, 0);
   g = map(g, 0, 255, 255, 0);
   b = map(b, 0, 255, 255, 0);
-  analogWrite(REDLITE, r);
-  analogWrite(GREENLITE, g);
-  analogWrite(BLUELITE, b);
+  analogWrite(LCD_R, r);
+  analogWrite(LCD_G, g);
+  analogWrite(LCD_B, b);
 }
 
 /*************************************************
