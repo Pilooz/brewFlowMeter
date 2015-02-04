@@ -22,14 +22,14 @@
 #define FLW 2
 
 // Rotary encoder
-#define REA  A0
-#define REB  A1
-#define REPUSH A2 
+#define REA  3
+#define REB  4
+#define REPUSH 7 
 
 // LCD Backlight control, PWM pins
-#define LCD_R 3
-#define LCD_G 5
-#define LCD_B 6
+#define LCD_R 5
+#define LCD_G 6
+#define LCD_B 9
 
 // Solenoid Valve
 #define VLV 13
