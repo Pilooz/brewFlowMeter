@@ -38,20 +38,20 @@
 // App is waiting for sensors or buttons changes : Valve is closed
 // displaying current passing volume, desired volume, total volume, flowrate
 // push button may open valve after APP_CONFIRM mode
-#define APP_WAITING = 0;
+#define APP_WAITING 0
 // App is running water thru valve : valve is opened
 // displaying current passing volume, desired volume, total volume, flowrate
 // push button may interrupt to close valve and return to APP_WAITING mode
-#define APP_RUNNING = 1;
+#define APP_RUNNING 1
 // App is in setting mode, valve is closed
 // displying 'setting mode' on first line and desired volume to adjust on second line
 // turing the rotary encoder adjust disered volume of water,
 // push button may set adjusted volume of water and return to APP_WAITING mode
-#define APP_SETTING = 2;
+#define APP_SETTING 2
 // App is in confirmation mode, valve is closed
 // displaying a confirmation message on first line and  yes | no choice on second line.
 // push button may set desired volume and return to APP_WAITING mode
-#define APP_CONFIRM = 3;
+#define APP_CONFIRM 3
 
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
 // to keep pwm and interrupts pins forothers deveices
