@@ -213,15 +213,16 @@ void encoder_read() {
   encoder_A = digitalRead(REA); //value of channel A;
   encoder_B = digitalRead(REB); //and channel B
   // Plus or minus ?
-   if ((encoder_oldpos == LOW) && (encoder_A == HIGH)) {
-     if (encoder_B == LOW) {
-       encoder_pos--;
-     } else {
-       encoder_pos++;
-     }
-   } 
-   encoder_oldpos = encoder_A;
-   switch (app_get_state()) {
+  if ((encoder_oldpos == LOW) && (encoder_A == HIGH)) {
+    if (encoder_B == LOW) {
+      encoder_pos--;
+    } 
+    else {
+      encoder_pos++;
+    }
+  } 
+  encoder_oldpos = encoder_A;
+  switch (app_get_state()) {
   case APP_SETTING:   
     // increments or decrements target volume with 0.05 liter step
     encoder_absolute_value = map(encoder_pos * 0.05, 0, 32768, 0, MAX_FLOW_VOLUME);
@@ -232,8 +233,8 @@ void encoder_read() {
     break;
   default:
     encoder_absolute_value = encoder_pos;
-   }
- }
+  }
+}
 
 /*************************************************
  * setting encoder event to pushed 
@@ -402,17 +403,17 @@ void lcd_options_mode() {
   // second line
   lcd.setCursor(0, 1);
   switch ((int)encoder_absolute_value) {
-    case 0:
-      lcd.print(" run   set  [x]"); 
-      break;
-    case 1:
-      lcd.print("[run]  set   x "); 
-      break;
-    case 2:
-      lcd.print(" run  [set]  x "); 
-      break;
-    default:
-      lcd.print(" run   set   x "); 
+  case 0:
+    lcd.print(" run   set  [x]"); 
+    break;
+  case 1:
+    lcd.print("[run]  set   x "); 
+    break;
+  case 2:
+    lcd.print(" run  [set]  x "); 
+    break;
+  default:
+    lcd.print(" run   set   x "); 
     break;
   }
   lcd.print(" L ");
@@ -521,8 +522,7 @@ void loop() // run over and over again
   encoder_read();
   // 2. read global application state
   switch (app_get_state()) {
-  case APP_WAITING:   
-    // App is waiting for sensors or buttons changes : Valve is closed
+  case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
     vlv_close();
     // Background color is blue, dodgerBlue.
     lcd_setbacklight(30, 144, 255);
@@ -530,23 +530,20 @@ void loop() // run over and over again
     lcd_waiting_mode();
     // push button may open valve after APP_CONFIRM mode
     break;
-  case APP_RUNNING:    
-    // App is running water thru valve : valve is opened
+  case APP_RUNNING: // App is running water thru valve : valve is opened
     vlv_open();
     // displaying current passing volume, desired volume, total volume, flowrate
     lcd_running_mode();
     // push button may interrupt to close valve and return to APP_WAITING mode
     break;
-  case APP_SETTING:    
-    // App is in setting mode, valve is closed
+  case APP_SETTING: // App is in setting mode, valve is closed
     vlv_close();
     // displying 'setting mode' on first line and desired volume to adjust on second line
     lcd_setting_mode();
     // turing the rotary encoder adjust desired volume of water,
     // push button may set adjusted volume of water and return to APP_WAITING mode
     break;
-  case APP_OPTIONS:    
-    // App is in confirmation mode, valve is closed
+  case APP_OPTIONS: // App is in confirmation mode, valve is closed
     vlv_close();
     // displaying a confirmation message on first line and  run / set / cancel choice on second line.
     lcd_options_mode();
@@ -558,6 +555,7 @@ void loop() // run over and over again
   } 
   delay(100);
 }
+
 
 
 
