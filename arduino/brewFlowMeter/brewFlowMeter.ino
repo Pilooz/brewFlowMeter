@@ -18,7 +18,7 @@
 #include <LiquidCrystal.h>
 #include <Wire.h>
 
-// Liquid Flow sensor
+// Liquid Flow sensor, Pin #2 for interrupt 0
 #define FLW 2
 
 // Rotary encoder
@@ -26,7 +26,7 @@
 #define REB  A1
 #define REPUSH A2 
 
-// LCD Backlight control
+// LCD Backlight control, PWM pins
 #define LCD_R 3
 #define LCD_G 5
 #define LCD_B 6
@@ -34,8 +34,10 @@
 // Solenoid Valve
 #define VLV 13
 
-// Liquid Crystal display
-LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
+// Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
+// to keep pwm and interrupts pins forothers deveices
+LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
+//LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
 
 // Liquid Flow meter variables
 // count how many flw_pulses!
