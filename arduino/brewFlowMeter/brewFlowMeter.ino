@@ -21,10 +21,10 @@
 // Liquid Flow sensor, Pin #2 for interrupt 0
 #define FLW 2
 
-// Rotary encoder
-#define REA  3
-#define REB  4
-#define REPUSH 7 
+// Rotary encoder push action on Pin #3 for interrupt 1
+#define REPUSH 3 
+#define REA  7
+#define REB  8
 
 // LCD Backlight control, PWM pins
 #define LCD_R 5
