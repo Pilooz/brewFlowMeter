@@ -34,6 +34,25 @@
 // Solenoid Valve, on 13 to have build-in Led status.
 #define VLV 13
 
+// Application status
+// App is waiting for sensors or buttons changes : Valve is closed
+// displaying current passing volume, desired volume, total volume, flowrate
+// push button may open valve after APP_CONFIRM mode
+#define APP_WAITING = 0;
+// App is running water thru valve : valve is opened
+// displaying current passing volume, desired volume, total volume, flowrate
+// push button may interrupt to close valve and return to APP_WAITING mode
+#define APP_RUNNING = 1;
+// App is in setting mode, valve is closed
+// displying 'setting mode' on first line and desired volume to adjust on second line
+// turing the rotary encoder adjust disered volume of water,
+// push button may set adjusted volume of water and return to APP_WAITING mode
+#define APP_SETTING = 2;
+// App is in confirmation mode, valve is closed
+// displaying a confirmation message on first line and  yes | no choice on second line.
+// push button may set desired volume and return to APP_WAITING mode
+#define APP_CONFIRM = 3;
+
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
 // to keep pwm and interrupts pins forothers deveices
 LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
@@ -66,6 +85,8 @@ int lcd_brightness = 100;
 int vlv_status = 0;
 
 // Application variables
+int app_status = APP_WAITING;
+int app_previous_status = APP_WAITING;
 
 /*************************************************
  * interruptions for flowsensor reading.
@@ -151,6 +172,13 @@ void encoder_setup() {
 }
 
 /*************************************************
+ * Setup initial state for application
+ **************************************************/
+void app_setup() {
+  app_set_state(APP_WAITING);
+}
+
+/*************************************************
  * Displaying data on serial
  **************************************************/
 void serial_display(float liters) {
@@ -228,6 +256,28 @@ float calculateLiters(uint16_t p) {
 }
 
 /*************************************************
+ * Setter for application status
+ **************************************************/
+void app_set_state(int s) {
+  app_previous_status = app_get_state();
+  app_status = s;
+}
+
+/*************************************************
+ * Getter for application status
+ **************************************************/
+int app_get_state() {
+  return app_status;
+}
+
+/*************************************************
+ * Getter for application previous status
+ **************************************************/
+int app_get_previous_state() {
+  return app_previous_status;
+}
+
+/*************************************************
  * Setup
  **************************************************/
 void setup() {
@@ -246,6 +296,9 @@ void setup() {
   // Rotary encoder
   encoder_setup();
 
+  // Setting initial state for screen application 
+  app_setup();
+  
   // setting Interuptions for flow sensor
   flw_interrupt(true);
 }
