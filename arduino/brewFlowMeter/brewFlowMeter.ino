@@ -249,10 +249,8 @@ void setup() {
 void loop() // run over and over again
 {
   float liters = calculateLiters(flw_pulses);
-
   lcd_display(liters);
   //serial_display(liters);
-
   delay(100);
 }
 
