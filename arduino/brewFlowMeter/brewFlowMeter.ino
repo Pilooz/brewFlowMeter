@@ -20,14 +20,19 @@
 
 // Liquid Flow sensor
 #define FLW 2
+
 // Rotary encoder
 #define REA  A0
 #define REB  A1
 #define REPUSH A2 
+
 // LCD Backlight control
 #define LCD_R 3
 #define LCD_G 5
 #define LCD_B 6
+
+// Solenoid Valve
+#define VLV 13
 
 // Liquid Crystal display
 LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
@@ -54,6 +59,9 @@ volatile boolean encoder_B = 0;
 
 // LCD variables
 int lcd_brightness = 100;
+
+// Valve variables
+ int vlv_status = 0;
 
 /*************************************************
  * interruptions for flowsensor reading.
@@ -99,6 +107,16 @@ void lcd_setup() {
   pinMode(LCD_B, OUTPUT);
   lcd.begin(16, 2);
   lcd.clear();
+}
+
+/*************************************************
+ * Setup for solenoid Valve
+ * By default it is closed.
+ **************************************************/
+void vlv_setup() {
+  pinMode(VLV, OUTPUT);
+  digitalWrite(VLV, LOW);
+  vlv_status = digitalRead(VLV);
 }
 
 /*************************************************
@@ -211,6 +229,9 @@ float calculateLiters(uint16_t p) {
 void setup() {
   //Serial
   //serial_setup();
+
+  // Solenoid Valve
+  vlv_setup();
 
   // LCD
   lcd_setup();
