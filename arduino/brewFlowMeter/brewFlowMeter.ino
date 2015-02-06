@@ -206,10 +206,10 @@ void serial_setup() {
  * Setup for rotary encoder
  **************************************************/
 void encoder_setup() {
-  //  pinMode(REA, INPUT_PULLUP);
-  //  pinMode(REB, INPUT_PULLUP); 
-  pinMode(REA, INPUT);
-  pinMode(REB, INPUT); 
+  pinMode(REA, INPUT_PULLUP);
+  pinMode(REB, INPUT_PULLUP); 
+  //pinMode(REA, INPUT);
+  //pinMode(REB, INPUT); 
   //  digitalWrite(REA, HIGH);
   //  digitalWrite(REB, HIGH);
   encoder_button_state = RE_WAIT;
@@ -398,10 +398,12 @@ void lcd_setting_mode() {
  **************************************************/
 void lcd_options_mode() {
   // background color Orange
-  lcd_setbacklight(255, 165, 0);
+  lcd_setbacklight(255, 50, 0);
   // first line
   lcd.setCursor(0, 0);
-  lcd.print("Choice ?        "); 
+  lcd.print("Choice ?"); 
+  lcd.print(" p="); 
+  lcd.print(encoder_pos);
   // second line
   lcd.setCursor(0, 1);
   switch ((int)encoder_pos) {
@@ -495,19 +497,14 @@ int app_get_previous_state() {
 void setup() {
   //Serial
   serial_setup();
-
   // Solenoid Valve
   vlv_setup();
-
   // LCD
   lcd_setup();
-
   // Liquid Flow meter
   flw_setup();
-
   // Rotary encoder
   encoder_setup();
-
   // Setting initial state for screen application 
   app_setup();
 
@@ -524,8 +521,8 @@ void loop() // run over and over again
 {
   encoder_read();
   
-  app_set_state(APP_SETTING);
-  lcd_setting_mode();
+  app_set_state(APP_OPTIONS);
+  lcd_options_mode();
   if (encoder_pos != tmp) {
     Serial.print("encoder_pos=");
     Serial.println(encoder_pos);
