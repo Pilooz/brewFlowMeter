@@ -30,7 +30,7 @@
 // event on encoder push button
 #define RE_WAIT 0
 #define RE_PUSHED 1
-#define RE_STEP 0.10
+#define ENC_LITERS_STEP 0.10
 
 // LCD Backlight control, PWM pins
 #define LCD_R 5
@@ -377,7 +377,7 @@ void lcd_running_mode() {
  **************************************************/
 void lcd_setting_mode() {
   //app_target_liters = round(encoder_absolute_value, 2);
-  app_target_liters = encoder_pos * RE_STEP;
+  app_target_liters = encoder_pos * ENC_LITERS_STEP;
   // background color Orange
   lcd_setbacklight(255, 165, 0);
   // first line
@@ -397,6 +397,7 @@ void lcd_setting_mode() {
  *  [Run] [Set] [x]
  **************************************************/
 void lcd_options_mode() {
+  encoder_pos = encoder_pos%10;
   // background color Orange
   lcd_setbacklight(255, 50, 0);
   // first line
