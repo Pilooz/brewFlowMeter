@@ -30,7 +30,8 @@
 // event on encoder push button
 #define RE_WAIT 0
 #define RE_PUSHED 1
-#define ENC_LITERS_STEP 0.10
+#define ENC_STEP_CW  1
+#define ENC_STEP_CCW 0.10
 
 // LCD Backlight control, PWM pins
 #define LCD_R 5
@@ -169,6 +170,7 @@ void serial_setup() {
 void encoder_read() {
   n = digitalRead(REA);
   if ((encoder_pinA_last == LOW) && (n == HIGH)) {
+    encoder_oldpos = encoder_pos;
     if (digitalRead(REB) == LOW) {       
       encoder_pos--;
     } 
@@ -200,8 +202,8 @@ void encoder_pushed(){
   encoder_button_state = digitalRead(REPUSH);
   if( (millis() - lastDebounceTime) > debounceDelay){
     encoder_button_state = RE_PUSHED;
-
     int previous_screen = app_get_previous_state();
+    
     // See where we were before this event
     switch (previous_screen) {
     case APP_WAITING:   
@@ -322,13 +324,14 @@ void lcd_running_mode() {
 /*************************************************
  * Displaying data on lcd 
  * Step : APP_SETTING
+ * Turning the rotary enc CW increments by 1.0 L
+ * turninc CCW decrements by 0.1 L
  * displaying :
  *   Target volume ?
  *   0.0 L 
  **************************************************/
 void lcd_setting_mode() {
-  //app_target_liters = round(encoder_absolute_value, 2);
-  app_target_liters = encoder_pos * ENC_LITERS_STEP;
+  app_target_liters = encoder_pos * ENC_STEP_CW;
   lcd.clear();
   // background color Orange
   lcd_setbacklight(255, 165, 0);
@@ -355,8 +358,6 @@ void lcd_options_mode() {
   // first line
   lcd.setCursor(0, 0);
   lcd.print("Choice ?"); 
-  lcd.print(" p="); 
-  lcd.print(encoder_pos);
   // second line
   lcd.setCursor(0, 1);
   switch ((int)encoder_pos) {
@@ -415,11 +416,14 @@ float calculateLiters(uint16_t p) {
   // Liters = (Frequency (flw_pulses/second) / 7.5) * time elapsed (seconds) / 60
   // Liters = flw_pulses / (7.5 * 60)
   // if a brass sensor use the following calculation
-  float l = p;
-  l /= 8.1;
-  l -= 6;
-  l /= 60.0;
-  return l;
+  if (p > 0) {
+    float l = p;
+    l /= 8.1;
+    l -= 6;
+    l /= 60.0;
+    return l;
+  }
+  return 0;
 }
 
 /*************************************************
@@ -543,6 +547,7 @@ void loop() // run over and over again
     break;
   } 
 }
+
 
 
 
