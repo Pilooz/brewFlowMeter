@@ -104,7 +104,7 @@ float encoder_step = 1;
 // LCD variables
 int lcd_brightness = 100;
 
-// Valve variables
+// Valve variables 0 : closed, 1:Opened
 int vlv_status = 0;
 
 // Application variables
@@ -149,32 +149,11 @@ void flw_interrupt(boolean v) {
 }
 
 /*************************************************
- * Setup for lcd
- **************************************************/
-void lcd_setup() {
-  // Setup backlight color.
-  pinMode(LCD_R, OUTPUT);
-  pinMode(LCD_G, OUTPUT);
-  pinMode(LCD_B, OUTPUT);
-  lcd.begin(16, 2);
-  lcd.clear();
-}
-
-/*************************************************
- * Setup for solenoid Valve
- * By default it is closed.
- **************************************************/
-void vlv_setup() {
-  pinMode(VLV, OUTPUT);
-  vlv_close();
-}
-
-/*************************************************
  * Closing solenoid Valve
  **************************************************/
 void vlv_close() {
   digitalWrite(VLV, LOW);
-  vlv_status = digitalRead(VLV);
+  vlv_status = LOW;
 }
 
 /*************************************************
@@ -182,16 +161,7 @@ void vlv_close() {
  **************************************************/
 void vlv_open() {
   digitalWrite(VLV, HIGH);
-  vlv_status = digitalRead(VLV);
-}
-
-/*************************************************
- * Setup for flowsensor
- **************************************************/
-void flw_setup() {
-  pinMode(FLW, INPUT);
-  digitalWrite(FLW, HIGH);
-  flw_last_pinstate = digitalRead(FLW);
+  vlv_status = HIGH;
 }
 
 /*************************************************
@@ -200,20 +170,6 @@ void flw_setup() {
 void serial_setup() {
   Serial.begin(9600);
   Serial.print("Flow sensor and rotary encoder test!");
-}
-
-/*************************************************
- * Setup for rotary encoder
- **************************************************/
-void encoder_setup() {
-  pinMode(REA, INPUT_PULLUP);
-  pinMode(REB, INPUT_PULLUP); 
-  //pinMode(REA, INPUT);
-  //pinMode(REB, INPUT); 
-  //  digitalWrite(REA, HIGH);
-  //  digitalWrite(REB, HIGH);
-  encoder_button_state = RE_WAIT;
-  encoder_read();
 }
 
 /*************************************************
@@ -285,15 +241,6 @@ void encoder_pushed(){
     break;
   } 
 }
-/*************************************************
- * Setup initial state for application
- **************************************************/
-void app_setup() {
-  app_set_state(APP_WAITING);
-  app_choice = CHOICE_CANCEL;
-  // @todo : read eeprom for following value ?
-  app_target_liters = 0;
-}
 
 /*************************************************
  * Displaying data on serial
@@ -326,7 +273,6 @@ void debug(float liters) {
  * displaying :
  *  flowrate L/s     total volume L
  *  percent flow %   current passed volume / desired volume 
- * @TODO : rounding values for a pretty display 
  **************************************************/
 void lcd_waiting_mode() {
   float liters = calculateLiters(flw_pulses);
@@ -335,24 +281,27 @@ void lcd_waiting_mode() {
   if (app_target_liters > 0) {
     pct = (int)(100 *liters / app_target_liters);
   }
-  // Set backlight to blue
-  lcd_adjust_backlight(pct);
+  if (vlv_status = HIGH) {
+    // Set backlight to blue
+    lcd_adjust_backlight(pct);
+  }
   // first line
   lcd.setCursor(0, 0);
-  lcd.print(flw_rate, DEC);
-  lcd.print("Hz"); 
-  lcd.setCursor(8, 0);
-  lcd.print(total_liters, DEC);
-  lcd.print(" L ");
+  lcd.print(flw_rate);
+  lcd.print("Hz "); 
+  lcd.print(total_liters);
+  lcd.print(" L");
   // second line
+  display_vlv_status();
+  /*
   lcd.setCursor(0, 1);
-  lcd.print(pct, DEC);
-  lcd.print(" % ");
-  lcd.setCursor(8, 0);
-  lcd.print(liters, DEC);
-  lcd.print(" / ");
-  lcd.print(app_target_liters, DEC);
-  lcd.print(" L ");
+  lcd.print((int)pct);
+  lcd.print("% ");
+  lcd.print(liters);
+  lcd.print("/");
+  lcd.print(app_target_liters);
+  lcd.print(" L");
+  */
 }
 
 /*************************************************
@@ -397,7 +346,7 @@ void lcd_setting_mode() {
  *  [Run] [Set] [x]
  **************************************************/
 void lcd_options_mode() {
-  encoder_pos = encoder_pos%10;
+  encoder_pos = encoder_pos%3;
   // background color Orange
   lcd_setbacklight(255, 50, 0);
   // first line
@@ -496,23 +445,43 @@ int app_get_previous_state() {
  * Setup
  **************************************************/
 void setup() {
+  // LCD
+  // Setup backlight color.
+  pinMode(LCD_R, OUTPUT);
+  pinMode(LCD_G, OUTPUT);
+  pinMode(LCD_B, OUTPUT);
+  lcd.begin(16, 2);
+  lcd.clear();
+  
   //Serial
   serial_setup();
   // Solenoid Valve
-  vlv_setup();
-  // LCD
-  lcd_setup();
+  pinMode(VLV, OUTPUT);
+  digitalWrite(VLV, LOW);
+  vlv_status = LOW;
+
   // Liquid Flow meter
-  flw_setup();
+  pinMode(FLW, INPUT);
+  digitalWrite(FLW, HIGH);
+  flw_last_pinstate = HIGH;
+
   // Rotary encoder
-  encoder_setup();
+  pinMode(REA, INPUT_PULLUP);
+  pinMode(REB, INPUT_PULLUP); 
+ //  digitalWrite(REA, HIGH);
+  //  digitalWrite(REB, HIGH);
+  encoder_button_state = RE_WAIT;
+
   // Setting initial state for screen application 
-  app_setup();
+  app_set_state(APP_WAITING);
+  app_choice = CHOICE_CANCEL;
+  // @todo : read eeprom for following value ?
+  app_target_liters = 0;
 
   // setting Interruptions for flow sensor
   flw_interrupt(true);
   // setting interruptions for encoder push action
-  //////  attachInterrupt(1, encoder_pushed, RISING);
+ ///// attachInterrupt(1, encoder_pushed, RISING);
 
 }
 
@@ -521,9 +490,9 @@ int tmp = 0;
 void loop() // run over and over again
 {
   encoder_read();
-  
-  app_set_state(APP_OPTIONS);
-  lcd_options_mode();
+
+  app_set_state(APP_WAITING);
+  lcd_waiting_mode();
   if (encoder_pos != tmp) {
     Serial.print("encoder_pos=");
     Serial.println(encoder_pos);
@@ -570,6 +539,12 @@ void loop() // run over and over again
    */
 }
 
+void display_vlv_status() {
+    lcd.setCursor(0, 1);
+    lcd.print("v=");
+    lcd.print(vlv_status);
+    delay(2000);
+}
 
 
 
