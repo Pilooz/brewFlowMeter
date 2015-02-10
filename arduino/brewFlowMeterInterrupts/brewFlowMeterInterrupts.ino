@@ -12,12 +12,24 @@
 // define DISABLE_PCINT_MULTI_SERVICE below to limit the handler to servicing a single interrupt per invocation.
 // #define       DISABLE_PCINT_MULTI_SERVICE
 //-------- define the above in your sketch, if applicable ------------------------------------------------------
+#include <math.h>
 #include <PinChangeInt.h>
+#include <LiquidCrystal.h>
 
 // Rotary encoder push action on Pin #3 for interrupt 1
 #define ENC_PUSH 3 //Label SW on encoder 
 #define ENC_A  7  // Label DT on encoder
 #define ENC_B  8  // Label CLK on encoder
+
+// LCD Backlight control, PWM pins
+#define LCD_R 5
+#define LCD_G 6
+#define LCD_B 9
+
+#define ENC_STEP  0.1
+
+// Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
+LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
 
 boolean debug_mode = true;
 
@@ -30,6 +42,8 @@ boolean A_set = false;
 boolean B_set = false;
 //    uint8_t latest_interrupted_pin;
 //    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
+
+float app_target_liters = 0;
 
 // --------------------------------------------------------
 // Setup
@@ -63,9 +77,18 @@ void debug(String s) {
 // --------------------------------------------------------
 void loop(){ 
   if (lastReportedPos != encoderPos) {
-    Serial.print("Index:");
-    Serial.print(encoderPos, DEC);
-    Serial.println();
+    switch (encoderPos - lastReportedPos) {
+      case -1:
+       app_target_liters = encoderPos * ENC_STEP;
+       break;
+      case 1:
+       app_target_liters = encoderPos * ENC_STEP;
+       break;
+      default:
+      break;
+    } 
+    Serial.print(app_target_liters);
+    Serial.println("L");
     lastReportedPos = encoderPos;
   }
 }
