@@ -1,3 +1,4 @@
+
 /**********************************************************
  * Liquid flow meters :
  * Connect the red wire to +5V,
@@ -14,7 +15,7 @@
  * BSD license, check license.txt for more information
  * All text above must be included in any redistribution
  **********************************************************/
-//include "LiquidCrystal.h"
+#include <PinChangeInt.h>
 #include <LiquidCrystal.h>
 #include <Wire.h>
 // Brewpot max volume in liter (use for mapping max volume)
@@ -85,13 +86,19 @@ volatile uint8_t flw_last_pinstate;
 volatile uint32_t flw_last_ratetimer = 0;
 // and use that to calculate a flow rate
 volatile float flw_rate;
-
+    
 // Rotary encoder variables
-int encoder_pos = 0;
-int encoder_oldpos = 0;
-int encoder_pinA_last = LOW;
-int n = LOW;
+volatile int encoder_pos = 0;
+volatile boolean PastA = 0;
+volatile boolean PastB = 0;
+
+//    int encoder_pos = 0;
+//    int encoder_oldpos = 0;
+//    int encoder_pinA_last = LOW;
+//    int n = LOW;
 int encoder_button_state = 0;
+//    // encoder turn CW (1) or CCW (-1), not sure (0)
+//    int encoder_way = 0;
 
 // LCD variables
 int lcd_brightness = 100;
@@ -164,26 +171,71 @@ void serial_setup() {
   Serial.print("Flow sensor and rotary encoder test!");
 }
 
-/*************************************************
- * reading values on Encoder PinA and Pin B
- **************************************************/
-void encoder_read() {
-  n = digitalRead(REA);
-  if ((encoder_pinA_last == LOW) && (n == HIGH)) {
-    encoder_oldpos = encoder_pos;
-    if (digitalRead(REB) == LOW) {       
-      encoder_pos--;
-    } 
-    else {
-      encoder_pos++;
-    }
-  } 
-  encoder_pinA_last = n;
+///*************************************************
+// * reading values on Encoder PinA and Pin B
+// **************************************************/
+//void encoder_read() {
+//  n = digitalRead(REA);
+//  encoder_way = 0;
+//  if ((encoder_pinA_last == LOW) && (n == HIGH)) {
+//    encoder_oldpos = encoder_pos;
+//    if (digitalRead(REB) == LOW) {       
+//      encoder_pos--;
+// //     encoder_way = -1;
+//    } 
+//    else {
+//      encoder_pos++;
+// //     encoder_way = 1;
+//    }
+//  }
+// encoder_way = encoder_pos - encoder_oldpos;
+// 
+//  encoder_pinA_last = n;
+//  // Limit to positive values
+//  if (encoder_pos < 0) {
+//    encoder_pos = 0;
+//    encoder_way = 0;
+//  }
+//
+//  if (encoder_way != 0) {
+//    Serial.print("a=");
+//    Serial.print(digitalRead(REA));
+//    Serial.print(", b=");
+//    Serial.print(digitalRead(REB));
+//    Serial.print(", pos=");
+//    Serial.print(encoder_pos);
+//    Serial.print(", oldpos=");
+//    Serial.print(encoder_oldpos);
+//    Serial.print(", way=");
+//    Serial.println(encoder_way);
+//  }
+//
+//
+//}
+//
+///*
+//  byte na = digitalRead(REA), nb = digitalRead(REB); // Lit l'état des deux broches
+//  static byte old = LOW; // Ancienne valeur de REA (valeur static = valeur persistante)
+//  char encoder_way = 0; // Valeur de retour (0 = pas de mouvement, 1 ou -1 = rotation de l'encodeur)
+// 
+//  if(old != na) { // Si l'encodeur a été tourné
+//    if(na) { // Test du sens de rotation
+//      if(!nb) encoder_way--; else encoder_way++; // Test du sens de rotation
+//    }
+//    else {
+//      if(!nb) encoder_way++; else encoder_way--; // Test du sens de rotation
+//    }
+//  }
+//  old = na; // Garde en mémoire la nouvelle valeur de REA
+//*/
+//
 
-  // Limit to positive values
-  if (encoder_pos < 0) {
-    encoder_pos = 0;
-  }
+void encoder_readA() {
+     PastB ? encoder_pos--:  encoder_pos++;
+}
+
+void encoder_readB() {
+     PastB = !PastB; 
 }
 
 /*************************************************
@@ -203,7 +255,7 @@ void encoder_pushed(){
   if( (millis() - lastDebounceTime) > debounceDelay){
     encoder_button_state = RE_PUSHED;
     int previous_screen = app_get_previous_state();
-    
+
     // See where we were before this event
     switch (previous_screen) {
     case APP_WAITING:   
@@ -253,7 +305,7 @@ void encoder_pushed(){
  * Displaying data on serial
  **************************************************/
 void debug(float liters) {
-  if (flw_pulses_old != flw_pulses || encoder_oldpos != encoder_pos) {
+  if (flw_pulses_old != flw_pulses ) {
     Serial.print("Freq: "); 
     Serial.println(flw_rate);
     Serial.print("flw_pulses: "); 
@@ -270,7 +322,7 @@ void debug(float liters) {
     Serial.println(encoder_pos);
 
     flw_pulses_old = flw_pulses;
-    encoder_oldpos = encoder_pos;
+//    encoder_oldpos = encoder_pos;
   }
 }
 
@@ -331,13 +383,30 @@ void lcd_running_mode() {
  *   0.0 L 
  **************************************************/
 void lcd_setting_mode() {
-  app_target_liters = encoder_pos * ENC_STEP_CW;
-  lcd.clear();
+   app_target_liters += encoder_pos * ENC_STEP_CW;
+  
   // background color Orange
   lcd_setbacklight(255, 165, 0);
   // first line
   lcd.setCursor(0, 0);
-  lcd.print("Target volume ?"); 
+  lcd.print("Target volume ? "); 
+
+//  if (encoder_pos != encoder_oldpos) {
+//    switch (encoder_way) {
+//    case 1:
+//      app_target_liters += ENC_STEP_CW;
+//      break;
+//    case -1:
+//      app_target_liters -= ENC_STEP_CCW;
+//      break;
+//    default: 
+//    lcd.setCursor(0, 0);
+//  lcd.print("ici on a 0! "); 
+//  
+//      break;
+//    }
+//  }
+
   // second line
   lcd.setCursor(0, 1);
   lcd.print(app_target_liters);
@@ -357,7 +426,7 @@ void lcd_options_mode() {
   lcd_setbacklight(255, 50, 0);
   // first line
   lcd.setCursor(0, 0);
-  lcd.print("Choice ?"); 
+  lcd.print("Choice ?        "); 
   // second line
   lcd.setCursor(0, 1);
   switch ((int)encoder_pos) {
@@ -374,7 +443,6 @@ void lcd_options_mode() {
     lcd.print(" run   set   x  "); 
     break;
   }
-  lcd.print(" L ");
   app_choice = encoder_pos;
 }
 
@@ -476,10 +544,12 @@ void setup() {
   pinMode(REA, INPUT_PULLUP);
   pinMode(REB, INPUT_PULLUP); 
   pinMode(REPUSH, INPUT_PULLUP); 
-  digitalWrite(REA, HIGH);
-  digitalWrite(REB, HIGH);
+//  digitalWrite(REA, HIGH);
+//  digitalWrite(REB, HIGH);
   digitalWrite(REPUSH, HIGH);
   encoder_button_state = RE_WAIT;
+  PastA = (boolean)digitalRead(REA); //initial value of channel A;
+  PastB = (boolean)digitalRead(REB); //and channel B
 
   // Setting initial state for screen application 
   app_status = APP_WAITING;
@@ -492,8 +562,11 @@ void setup() {
   // setting Interruptions for flow sensor
   flw_interrupt(true);
   // setting interruptions for encoder push action
-  attachInterrupt(1, encoder_pushed, RISING);
-
+  
+   // PinChangeInt library attachInterrupt function
+  PCintPort::attachInterrupt(1, encoder_pushed,CHANGE); 
+  PCintPort::attachInterrupt(2, encoder_readA,RISING); 
+  PCintPort::attachInterrupt(3, encoder_readB,CHANGE); 
 }
 
 int tmp = 0;
@@ -511,7 +584,8 @@ void loop() // run over and over again
    }
    */
   // Read the encoder
-  encoder_read();
+//   encoder_read();
+
   // Displaying approriate screen
   switch (app_get_state()) {
   case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
@@ -547,6 +621,9 @@ void loop() // run over and over again
     break;
   } 
 }
+
+
+
 
 
 
