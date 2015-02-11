@@ -27,6 +27,9 @@
 #define LCD_G 6
 #define LCD_B 9
 
+// Solenoid Valve, on 13 to have build-in Led status.
+#define VLV 13
+
 #define ENC_STEP  0.1
 // Application status
 // App is waiting for sensors or buttons changes : Valve is closed
@@ -73,12 +76,31 @@ int encoder_button_state = 0;
 // LCD variables
 int lcd_brightness = 100;
 
+// Valve variables 0 : closed, 1:Opened
+int vlv_status = LOW;
+
 float app_target_liters = 0;
 
 // Application variables
 int app_status = APP_WAITING;
 int app_previous_status = APP_WAITING;
 int app_choice = CHOICE_CANCEL;
+
+/*************************************************
+ * Closing solenoid Valve
+ **************************************************/
+void vlv_close() {
+  digitalWrite(VLV, LOW);
+  vlv_status = LOW;
+}
+
+/*************************************************
+ * Opening solenoid Valve
+ **************************************************/
+void vlv_open() {
+  digitalWrite(VLV, HIGH);
+  vlv_status = HIGH;
+}
 
 /*************************************************
  * Setter for application status
@@ -150,6 +172,40 @@ void lcd_splash_screen() {
 }
 
 /*************************************************
+ * Displaying data on lcd 
+ * Step : APP_OPTIONS
+ * displaying :
+ *  Choice ?
+ *  [Run] [Set] [x]
+ **************************************************/
+void lcd_options_mode() {
+  encoderPos = encoderPos%3;
+  // background color Orange
+  lcd_setbacklight(255, 50, 0);
+  // first line
+  lcd.setCursor(0, 0);
+  lcd.print("Choice ?        "); 
+  // second line
+  lcd.setCursor(0, 1);
+  switch ((int)encoderPos) {
+  case 0:
+    lcd.print(" run   set  [x] "); 
+    break;
+  case 1:
+    lcd.print("[run]  set   x  "); 
+    break;
+  case 2:
+    lcd.print(" run  [set]  x  "); 
+    break;
+  default:
+    lcd.print(" run   set   x  "); 
+    break;
+  }
+  app_choice = encoderPos;
+}
+
+
+/*************************************************
  * Setup for serial
  **************************************************/
 void serial_setup() {
@@ -171,6 +227,10 @@ void setup() {
   // Slash screen
   lcd_splash_screen();
 
+  // Solenoid Valve
+  pinMode(VLV, OUTPUT);
+  digitalWrite(VLV, LOW);
+  vlv_status = 0;
   // Encoder settings
   pinMode(ENC_PUSH, INPUT); 
   digitalWrite(ENC_PUSH, HIGH);
@@ -261,16 +321,21 @@ void button_pushed() {
     switch (previous_screen) {
     case APP_WAITING:   
       // We were on Waiting state, so go to APP_OPTIONS
+      vlv_close();
       app_set_state(APP_OPTIONS);
+      lcd_options_mode();
       break;
 
     case APP_RUNNING:    
       // We were in running mode, so close valve and go to APP_WAITING
+      vlv_close();
       app_set_state(APP_WAITING);
+//      lcd_waiting_mode();
       break;
 
     case APP_SETTING:   
       // we were in setting mode, so validate setting and go to APP_WAITING
+      vlv_close();
       app_set_state(APP_WAITING);
       break;
 
@@ -281,6 +346,7 @@ void button_pushed() {
         app_set_state(APP_WAITING); // Canceling any action, go to waiting state
         break;
       case CHOICE_RUNNING:
+        vlv_open();
         app_set_state(APP_RUNNING); // Go to running mode, valve opened
         break;
       case CHOICE_SETTING:
@@ -298,6 +364,8 @@ void button_pushed() {
     Serial.println(app_get_state());
     Serial.print("encoder_button_state=");
     Serial.println(encoder_button_state);
+    Serial.print("valve=");
+    Serial.println(vlv_status);
   } 
   interrupts();
 }
