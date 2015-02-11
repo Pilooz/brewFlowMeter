@@ -330,7 +330,7 @@ void button_pushed() {
       // We were in running mode, so close valve and go to APP_WAITING
       vlv_close();
       app_set_state(APP_WAITING);
-//      lcd_waiting_mode();
+      //      lcd_waiting_mode();
       break;
 
     case APP_SETTING:   
@@ -360,15 +360,32 @@ void button_pushed() {
       // see if we need to reset something ?
       break;
     } 
+
     Serial.print("app_state=");
-    Serial.println(app_get_state());
-    Serial.print("encoder_button_state=");
-    Serial.println(encoder_button_state);
+    switch (app_get_state()) {
+    case APP_WAITING: 
+      Serial.print("APP_WAITING"); 
+      break;
+    case APP_RUNNING: 
+      Serial.print("APP_RUNNING"); 
+      break;
+    case APP_SETTING: 
+      Serial.print("APP_SETTING"); 
+      break;
+    case APP_OPTIONS: 
+      Serial.print("APP_OPTIONS"); 
+      break;
+    default: 
+      Serial.print("Non persistent state ?"); 
+      break;
+    }
+    Serial.println();
     Serial.print("valve=");
     Serial.println(vlv_status);
   } 
   interrupts();
 }
+
 
 
 
