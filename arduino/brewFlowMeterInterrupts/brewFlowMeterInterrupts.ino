@@ -131,10 +131,10 @@ void vlv_open() {
 void app_set_state(int s) {
   app_previous_status = app_get_state();
   app_status = s;
-  Serial.print("app_status=");
-  Serial.println(s);
-  Serial.print("app_previous_status=");
-  Serial.println(app_previous_status);
+//  Serial.print("app_status=");
+//  Serial.println(s);
+//  Serial.print("app_previous_status=");
+//  Serial.println(app_previous_status);
 }
 
 /*************************************************
@@ -212,7 +212,7 @@ void lcd_splash_screen() {
   lcd.print(APP_VERSION);
   lcd.print(" by Pilooz ");
 
-  // background color Orange
+  // background color
   for (int i = 0; i < 255; i++) {
     lcd_setbacklight(i, 0, 255-i);
     delay(5);
@@ -356,7 +356,7 @@ void lcd_message(String msg) {
  **************************************************/
 void serial_setup() {
   Serial.begin(9600);
-  Serial.print("Flow sensor and rotary encoder test!");
+  Serial.println("Flow sensor and rotary encoder test!");
 }
 
 // --------------------------------------------------------
@@ -404,7 +404,7 @@ void setup() {
   app_previous_status = APP_SPLASH;
   app_choice = CHOICE_CANCEL;
 
-  serial_setup();
+  //serial_setup();
 }
 
 // --------------------------------------------------------
@@ -488,7 +488,7 @@ void doEncoderB(){
  * This is called on interrupt #1
  **************************************************/
 long lastDebounceTime = 0;  // the last time the output pin was toggled
-long debounceDelay = 50;    // the debounce time; increase if the output flickers
+long debounceDelay = 100;    // the debounce time; increase if the output flickers
 
 void button_pushed() {
   noInterrupts();
