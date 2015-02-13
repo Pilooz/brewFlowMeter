@@ -131,10 +131,10 @@ void vlv_open() {
 void app_set_state(int s) {
   app_previous_status = app_get_state();
   app_status = s;
-//  Serial.print("app_status=");
-//  Serial.println(s);
-//  Serial.print("app_previous_status=");
-//  Serial.println(app_previous_status);
+  //  Serial.print("app_status=");
+  //  Serial.println(s);
+  //  Serial.print("app_previous_status=");
+  //  Serial.println(app_previous_status);
 }
 
 /*************************************************
@@ -271,17 +271,17 @@ void lcd_options_mode() {
  **************************************************/
 void lcd_setting_mode() {  
   //if (lastReportedPos != encoderPos) {
-    switch (encoderPos - lastReportedPos) {
-    case -1:
-      app_target_liters = encoderPos * ENC_STEP;
-      break;
-    case 1:
-      app_target_liters = encoderPos * ENC_STEP;
-      break;
-    default:
-      break;
-    } 
-//  }
+  switch (encoderPos - lastReportedPos) {
+  case -1:
+    app_target_liters = encoderPos * ENC_STEP;
+    break;
+  case 1:
+    app_target_liters = encoderPos * ENC_STEP;
+    break;
+  default:
+    break;
+  } 
+  //  }
   // background color Orange
   lcd_setbacklight(255, 165, 0);
   // first line
@@ -411,8 +411,8 @@ void setup() {
 // Main loop
 // --------------------------------------------------------
 void loop(){ 
-// If encoder has moved or has been pushed
- if (encoder_button_state == 1 || (lastReportedPos != encoderPos)) {
+  // If encoder has moved or has been pushed
+  if (encoder_button_state == 1 || (lastReportedPos != encoderPos)) {
     lcd.clear();
     switch (app_get_state()) {
     case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
@@ -563,6 +563,7 @@ void flw_read() {
   flw_last_ratetimer = 0;
   flw_total_pulses = flw_pulses;
 }
+
 
 
 
