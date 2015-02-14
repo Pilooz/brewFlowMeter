@@ -1,17 +1,24 @@
-// PinChangeIntExample, version 1.1 Sun Jan 15 06:24:19 CST 2012
-// See the Wiki at http://code.google.com/p/arduino-pinchangeint/wiki for more information.
-//-------- define these in your sketch, if applicable ----------------------------------------------------------
-// You can reduce the memory footprint of this handler by declaring that there will be no pin change interrupts
-// on any one or two of the three ports.  If only a single port remains, the handler will be declared inline
-// reducing the size and latency of the handler.
+/*********************************************************************************
+ BrewFlowMeter v1.0 by Pilooz.
+ 
+This program uses the PinChangeInt Library to get interruptions on more than two pins
+with Arduino UNO.
+See the Wiki at http://code.google.com/p/arduino-pinchangeint/wiki for more information.
+
+@TODO : code optimization
+        -> delete getters and setters for app_(previous_)status 
+        -> See what PORT doesn't need any interrupt (think about PORT D?)
+        -> See if Wire.h is needed (for lcd pwm drivering ?)
+        code implementation
+        -> read/write on EEPROM for desired & total volume.
+        -> Test correclty with flow sensor
+        -> 
+**********************************************************************************/
 //#define NO_PORTB_PINCHANGES // to indicate that port b will not be used for pin change interrupts
 //#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
 //#define NO_PORTD_PINCHANGES // to indicate that port d will not be used for pin change interrupts
-// if there is only one PCInt vector in use the code can be inlined
-// reducing latency and code size
-// define DISABLE_PCINT_MULTI_SERVICE below to limit the handler to servicing a single interrupt per invocation.
 // #define       DISABLE_PCINT_MULTI_SERVICE
-//-------- define the above in your sketch, if applicable ------------------------------------------------------
+
 #include <PinChangeInt.h>
 #include <LiquidCrystal.h>
 
@@ -131,10 +138,6 @@ void vlv_open() {
 void app_set_state(int s) {
   app_previous_status = app_get_state();
   app_status = s;
-  //  Serial.print("app_status=");
-  //  Serial.println(s);
-  //  Serial.print("app_previous_status=");
-  //  Serial.println(app_previous_status);
 }
 
 /*************************************************
@@ -263,25 +266,14 @@ void lcd_options_mode() {
 /*************************************************
  * Displaying data on lcd 
  * Step : APP_SETTING
- * Turning the rotary enc CW increments by 1.0 L
+ * Turning the rotary enc CW increments by 0.1 L
  * turninc CCW decrements by 0.1 L
  * displaying :
  *   Target volume ?
  *   0.0 L 
  **************************************************/
 void lcd_setting_mode() {  
-  //if (lastReportedPos != encoderPos) {
-  switch (encoderPos - lastReportedPos) {
-  case -1:
-    app_target_liters = encoderPos * ENC_STEP;
-    break;
-  case 1:
-    app_target_liters = encoderPos * ENC_STEP;
-    break;
-  default:
-    break;
-  } 
-  //  }
+  app_target_liters = encoderPos * ENC_STEP;
   // background color Orange
   lcd_setbacklight(255, 165, 0);
   // first line
@@ -377,9 +369,8 @@ void setup() {
   pinMode(VLV, OUTPUT);
   digitalWrite(VLV, LOW);
   vlv_status = 0;
-
-  // Flowmeter settings
-  // Liquid Flow meter
+ 
+  // Liquid Flow meter settings
   pinMode(FLW, INPUT);
   digitalWrite(FLW, HIGH);
   flw_last_pinstate = HIGH;
@@ -400,7 +391,6 @@ void setup() {
   encoder_button_state = 0;
 
   // Setting initial state for screen application  
-  //app_status = APP_WAITING;
   app_previous_status = APP_SPLASH;
   app_choice = CHOICE_CANCEL;
 
@@ -485,7 +475,7 @@ void doEncoderB(){
  * (when encoder button is pushed)
  * 
  * This is the Interface Controller
- * This is called on interrupt #1
+ * This is called on interrupt
  **************************************************/
 long lastDebounceTime = 0;  // the last time the output pin was toggled
 long debounceDelay = 100;    // the debounce time; increase if the output flickers
