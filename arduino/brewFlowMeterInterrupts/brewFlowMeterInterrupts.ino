@@ -5,6 +5,8 @@ This program uses the PinChangeInt Library to get interruptions on more than two
 with Arduino UNO.
 See the Wiki at http://code.google.com/p/arduino-pinchangeint/wiki for more information.
 
+Backlight RGB control by https://learn.adafruit.com/character-lcds/rgb-backlit-lcds
+
 @TODO : code optimization
         -> delete getters and setters for app_(previous_)status 
         -> See what PORT doesn't need any interrupt (think about PORT D?)
