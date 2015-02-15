@@ -247,7 +247,7 @@ void lcd_splash_screen() {
  *  [Run] [Set] [x]
  **************************************************/
 void lcd_options_mode() {
-  encoderPos = encoderPos%3;
+  encoderPos = abs(encoderPos)%3;
   // background color Orange
   lcd_setbacklight(255, 50, 0);
   // first line
@@ -282,6 +282,9 @@ void lcd_options_mode() {
  *   0.0 L 
  **************************************************/
 void lcd_setting_mode() {  
+  if (encoderPos < 0) {
+    encoderPos = 0;
+  }
   app_target_liters = encoderPos * ENC_STEP;
   // background color Orange
   lcd_setbacklight(255, 165, 0);
@@ -403,7 +406,7 @@ void setup() {
   app_previous_status = APP_SPLASH;
   app_choice = CHOICE_CANCEL;
 
-  //serial_setup();
+  serial_setup();
 }
 
 // --------------------------------------------------------
@@ -465,9 +468,6 @@ void doEncoderA(){
     A_set = digitalRead(ENC_A) == HIGH;
     // and adjust counter + if A leads B
     encoderPos += (A_set != B_set) ? -1 : +1;
-    if (encoderPos < 0) {
-      encoderPos = 0;
-    }
   }
   interrupts();  
 }
@@ -479,9 +479,6 @@ void doEncoderB(){
     B_set = digitalRead(ENC_B) == HIGH;
     // and adjust counter + if B follows A
     encoderPos += (A_set == B_set) ? -1 : +1;
-    if (encoderPos < 0) {
-      encoderPos = 0;
-    }
   }
   interrupts();  
 }
