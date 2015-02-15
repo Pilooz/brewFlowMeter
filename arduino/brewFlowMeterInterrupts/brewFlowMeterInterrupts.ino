@@ -87,6 +87,13 @@ boolean B_set = false;
 // The bstate of the button 0 : rest, 1 pushed
 int encoder_button_state = 0;
 
+long lastDebounceTimeA = 0;  // the last time the output pin A was toggled
+long debounceDelayA = 10;    // the debounce time
+long lastDebounceTimeB = 0;  // the last time the output pin B was toggled
+long debounceDelayB = 10;    // the debounce time
+
+
+
 //    uint8_t latest_interrupted_pin;
 //    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
 
@@ -450,9 +457,6 @@ void loop(){
 // --------------------------------------------------------
 // Interrupts for Rotary encoder
 // --------------------------------------------------------
-long lastDebounceTimeA = 0;  // the last time the output pin was toggled
-long debounceDelayA = 10;    // the debounce time; increase if the output flickers
-
 // Interrupt on A changing state
 void doEncoderA(){
   noInterrupts();
@@ -467,9 +471,6 @@ void doEncoderA(){
   }
   interrupts();  
 }
-
-long lastDebounceTimeB = 0;  // the last time the output pin was toggled
-long debounceDelayB = 10;    // the debounce time; increase if the output flickers
 
 // Interrupt on B changing state
 void doEncoderB(){
