@@ -1,21 +1,21 @@
 /*********************************************************************************
- BrewFlowMeter v1.0 by Pilooz.
- 
-This program uses the PinChangeInt Library to get interruptions on more than two pins
-with Arduino UNO.
-See the Wiki at http://code.google.com/p/arduino-pinchangeint/wiki for more information.
-
-Backlight RGB control by https://learn.adafruit.com/character-lcds/rgb-backlit-lcds
-
-@TODO : code optimization
-        -> delete getters and setters for app_(previous_)status 
-        -> See what PORT doesn't need any interrupt (think about PORT D?)
-        -> See if Wire.h is needed (for lcd pwm drivering ?)
-        code implementation
-        -> read/write on EEPROM for desired & total volume.
-        -> Test correclty with flow sensor
-        -> 
-**********************************************************************************/
+ * BrewFlowMeter v1.0 by Pilooz.
+ * 
+ * This program uses the PinChangeInt Library to get interruptions on more than two pins
+ * with Arduino UNO.
+ * See the Wiki at http://code.google.com/p/arduino-pinchangeint/wiki for more information.
+ * 
+ * Backlight RGB control by https://learn.adafruit.com/character-lcds/rgb-backlit-lcds
+ * 
+ * @TODO : code optimization
+ * -> delete getters and setters for app_(previous_)status 
+ * -> See what PORT doesn't need any interrupt (think about PORT D?)
+ * -> See if Wire.h is needed (for lcd pwm drivering ?)
+ * code implementation
+ * -> read/write on EEPROM for desired & total volume.
+ * -> Test correclty with flow sensor
+ * -> 
+ **********************************************************************************/
 //#define NO_PORTB_PINCHANGES // to indicate that port b will not be used for pin change interrupts
 //#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
 //#define NO_PORTD_PINCHANGES // to indicate that port d will not be used for pin change interrupts
@@ -371,7 +371,7 @@ void setup() {
   pinMode(VLV, OUTPUT);
   digitalWrite(VLV, LOW);
   vlv_status = 0;
- 
+
   // Liquid Flow meter settings
   pinMode(FLW, INPUT);
   digitalWrite(FLW, HIGH);
@@ -450,26 +450,39 @@ void loop(){
 // --------------------------------------------------------
 // Interrupts for Rotary encoder
 // --------------------------------------------------------
+long lastDebounceTimeA = 0;  // the last time the output pin was toggled
+long debounceDelayA = 10;    // the debounce time; increase if the output flickers
+
 // Interrupt on A changing state
 void doEncoderA(){
-  // Test transition
-  A_set = digitalRead(ENC_A) == HIGH;
-  // and adjust counter + if A leads B
-  encoderPos += (A_set != B_set) ? -1 : +1;
-  if (encoderPos < 0) {
-    encoderPos = 0;
+  noInterrupts();
+  if( ((long)millis() - lastDebounceTimeA) > debounceDelayA){
+    // Test transition
+    A_set = digitalRead(ENC_A) == HIGH;
+    // and adjust counter + if A leads B
+    encoderPos += (A_set != B_set) ? -1 : +1;
+    if (encoderPos < 0) {
+      encoderPos = 0;
+    }
   }
+  interrupts();  
 }
+
+long lastDebounceTimeB = 0;  // the last time the output pin was toggled
+long debounceDelayB = 10;    // the debounce time; increase if the output flickers
 
 // Interrupt on B changing state
 void doEncoderB(){
-  // Test transition
-  B_set = digitalRead(ENC_B) == HIGH;
-  // and adjust counter + if B follows A
-  encoderPos += (A_set == B_set) ? -1 : +1;
-  if (encoderPos < 0) {
-    encoderPos = 0;
+  noInterrupts();
+  if( ((long)millis() - lastDebounceTimeB) > debounceDelayB){  // Test transition
+    B_set = digitalRead(ENC_B) == HIGH;
+    // and adjust counter + if B follows A
+    encoderPos += (A_set == B_set) ? -1 : +1;
+    if (encoderPos < 0) {
+      encoderPos = 0;
+    }
   }
+  interrupts();  
 }
 
 /*************************************************
@@ -555,6 +568,8 @@ void flw_read() {
   flw_last_ratetimer = 0;
   flw_total_pulses = flw_pulses;
 }
+
+
 
 
 
