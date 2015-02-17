@@ -20,7 +20,7 @@
 //#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
 //#define NO_PORTD_PINCHANGES // to indicate that port d will not be used for pin change interrupts
 // #define       DISABLE_PCINT_MULTI_SERVICE
-
+#include <EEPROM.h>
 #include <PinChangeInt.h>
 #include <LiquidCrystal.h>
 
@@ -74,6 +74,11 @@
 #define CHOICE_SETTING 2
 #define CHOICE_CANCEL  0
 
+// Constants for eeprom addresses
+#define EEPROM_TOTAL_PULSES_ADDR 0
+#define EEPROM_TARGET_LITERS_ADDR 8
+
+
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
 LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
 
@@ -124,6 +129,28 @@ int app_status = APP_WAITING;
 int app_previous_status = APP_WAITING;
 int app_choice = CHOICE_CANCEL;
 String app_error = "";
+
+/*************************************************
+ * Writing a float in EEPROM
+ **************************************************/
+void eeprom_write(int addr, float f) {
+    unsigned char *buf = (unsigned char*)(&f);
+    for ( int i = 0 ; i < sizeof(f) ; i++ ) {
+        EEPROM.write(addr+i, buf[i]);
+    }
+}
+ 
+/*************************************************
+ * Reading a float from EEPROM
+ **************************************************/
+float eeprom_read(int addr) {
+    float f;
+    unsigned char *buf = (unsigned char*)(&f);
+    for ( int i = 0 ; i < sizeof(f) ; i++ ) {
+         buf[i] = EEPROM.read(addr+i);
+    }
+    return f;
+}
 
 /*************************************************
  * Closing solenoid Valve
@@ -406,7 +433,10 @@ void setup() {
   // Setting initial state for screen application  
   app_previous_status = APP_SPLASH;
   app_choice = CHOICE_CANCEL;
-
+  
+  // Read saved values from eeprom
+  flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
+  app_target_liters = eeprom_read(EEPROM_TARGET_LITERS_ADDR);
   serial_setup();
 }
 
@@ -519,6 +549,8 @@ void button_pushed() {
 
     case APP_SETTING:   
       // we were in setting mode, so validate setting and go to APP_WAITING
+      // here we can write app_target_liters to EEPROM
+      eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);
       // Setting the pulses to zero.
       flw_pulses = 0;
       app_set_state(APP_WAITING);
