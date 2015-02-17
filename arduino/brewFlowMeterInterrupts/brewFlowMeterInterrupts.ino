@@ -519,6 +519,8 @@ void button_pushed() {
 
     case APP_SETTING:   
       // we were in setting mode, so validate setting and go to APP_WAITING
+      // Setting the pulses to zero.
+      flw_pulses = 0;
       app_set_state(APP_WAITING);
       break;
 
