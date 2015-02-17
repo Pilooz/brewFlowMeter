@@ -312,7 +312,8 @@ void lcd_waiting_mode() {
     pct = (int)(100 *liters / app_target_liters);
   }
   if (vlv_status == HIGH) {
-    // Set backlight to blue
+    // Set backlight to a various color that say it's open.
+    // The color changes on pct increase.
     lcd_adjust_backlight(pct);
   }
   // first line
