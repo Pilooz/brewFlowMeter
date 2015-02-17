@@ -565,7 +565,7 @@ void flw_read() {
   flw_rate = 1000.0;
   flw_rate /= flw_last_ratetimer; // in hertz
   flw_last_ratetimer = 0;
-  flw_total_pulses = flw_pulses;
+  flw_total_pulses += flw_pulses;
 }
 
 
