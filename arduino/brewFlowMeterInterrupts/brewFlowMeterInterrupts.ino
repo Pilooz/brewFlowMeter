@@ -76,7 +76,8 @@
 
 // Constants for eeprom addresses
 #define EEPROM_TOTAL_PULSES_ADDR 0
-#define EEPROM_TARGET_LITERS_ADDR 8
+#define EEPROM_CURRENT_PULSES_ADDR 8
+#define EEPROM_TARGET_LITERS_ADDR 16
 
 
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
@@ -134,38 +135,42 @@ String app_error = "";
  * Writing a float in EEPROM
  **************************************************/
 void eeprom_write(int addr, float f) {
-    unsigned char *buf = (unsigned char*)(&f);
-    for ( int i = 0 ; i < sizeof(f) ; i++ ) {
-        EEPROM.write(addr+i, buf[i]);
-    }
+  unsigned char *buf = (unsigned char*)(&f);
+  for ( int i = 0 ; i < (int)sizeof(f) ; i++ ) {
+    EEPROM.write(addr+i, buf[i]);
+  }
 }
- 
+
 /*************************************************
  * Reading a float from EEPROM
  **************************************************/
 float eeprom_read(int addr) {
-    float f;
-    unsigned char *buf = (unsigned char*)(&f);
-    for ( int i = 0 ; i < sizeof(f) ; i++ ) {
-         buf[i] = EEPROM.read(addr+i);
-    }
-    return f;
+  float f;
+  unsigned char *buf = (unsigned char*)(&f);
+  for ( int i = 0 ; i < (int)sizeof(f) ; i++ ) {
+    buf[i] = EEPROM.read(addr+i);
+  }
+  return f;
 }
 
 /*************************************************
  * Closing solenoid Valve
  **************************************************/
 void vlv_close() {
-  digitalWrite(VLV, LOW);
-  vlv_status = LOW;
+  if (vlv_status == HIGH) {
+    digitalWrite(VLV, LOW);
+    vlv_status = LOW;
+  }
 }
 
 /*************************************************
  * Opening solenoid Valve
  **************************************************/
 void vlv_open() {
-  digitalWrite(VLV, HIGH);
-  vlv_status = HIGH;
+  if (vlv_status == LOW) {
+    digitalWrite(VLV, HIGH);
+    vlv_status = HIGH;
+  }
 }
 
 /*************************************************
@@ -433,8 +438,9 @@ void setup() {
   // Setting initial state for screen application  
   app_previous_status = APP_SPLASH;
   app_choice = CHOICE_CANCEL;
-  
+
   // Read saved values from eeprom
+  flw_pulses = eeprom_read(EEPROM_CURRENT_PULSES_ADDR);
   flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
   app_target_liters = eeprom_read(EEPROM_TARGET_LITERS_ADDR);
   serial_setup();
@@ -458,6 +464,8 @@ void loop(){
       break;
     case APP_RUNNING: // App is running water thru valve : valve is opened
       vlv_open();
+      // Saving the current flw_pulses
+      eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_running_mode();
       // push button may interrupt to close valve and return to APP_WAITING mode
@@ -544,6 +552,8 @@ void button_pushed() {
 
     case APP_RUNNING:    
       // We were in running mode, so close valve and go to APP_WAITING
+      // here we can write flw_total_pulses to EEPROM
+      eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
       app_set_state(APP_WAITING);
       break;
 
@@ -601,6 +611,9 @@ void flw_read() {
   flw_last_ratetimer = 0;
   flw_total_pulses += flw_pulses;
 }
+
+
+
 
 
 
