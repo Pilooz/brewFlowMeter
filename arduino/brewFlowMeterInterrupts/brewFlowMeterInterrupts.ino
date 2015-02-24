@@ -12,9 +12,9 @@
  * -> See what PORT doesn't need any interrupt (think about PORT D?)
  * -> See if Wire.h is needed (for lcd pwm drivering ?)
  * code implementation
- * -> read/write on EEPROM for desired & total volume.
- * -> Test correclty with flow sensor
- * -> 
+ * -> See what it blinks when starting program (after setting screen)
+ * -> Bug on total liter count : after several flown, eeprom r/w pb ?
+ 
  **********************************************************************************/
 //#define NO_PORTB_PINCHANGES // to indicate that port b will not be used for pin change interrupts
 //#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
@@ -23,6 +23,7 @@
 #include <EEPROM.h>
 #include <PinChangeInt.h>
 #include <LiquidCrystal.h>
+#include <Wire.h>
 
 #define APP_VERSION "1.0"
 
@@ -158,6 +159,7 @@ float eeprom_read(int addr) {
  **************************************************/
 void vlv_close() {
   if (vlv_status == HIGH) {
+    flw_read(false);
     digitalWrite(VLV, LOW);
     vlv_status = LOW;
   }
@@ -168,6 +170,7 @@ void vlv_close() {
  **************************************************/
 void vlv_open() {
   if (vlv_status == LOW) {
+    flw_read(true);
     digitalWrite(VLV, HIGH);
     vlv_status = HIGH;
   }
@@ -220,8 +223,9 @@ float calculateLiters(uint16_t p) {
  **************************************************/
 void lcd_adjust_backlight(int pct) {
   // mapping pct between 0 and 255
-  map(pct, 0, 100, 0, 255);
-  lcd_setbacklight(pct, 255-pct, 0);
+  int p = (int)((pct/100)*255);
+  //map(pct, 0, 100, 0, 100);
+  lcd_setbacklight(p, 255-p, 0);
 }
 
 /*************************************************
@@ -343,11 +347,19 @@ void lcd_waiting_mode() {
   if (app_target_liters > 0) {
     pct = (int)(100 *liters / app_target_liters);
   }
+  
   if (vlv_status == HIGH) {
     // Set backlight to a various color that say it's open.
     // The color changes on pct increase.
     lcd_adjust_backlight(pct);
   }
+  
+  // see if we got 100% of target?
+  if (pct == 100) {
+    // Forcing waiting State, this stat closes valve
+    app_set_state(APP_WAITING);
+  }
+  
   // first line
   lcd.setCursor(0, 0);
   lcd.print(flw_rate);
@@ -416,11 +428,12 @@ void setup() {
   vlv_status = 0;
 
   // Liquid Flow meter settings
-  pinMode(FLW, INPUT);
-  digitalWrite(FLW, HIGH);
+  pinMode(FLW, INPUT_PULLUP);
+  //digitalWrite(FLW, LOW);
   flw_last_pinstate = HIGH;
-  PCintPort::attachInterrupt(FLW, &flw_read, RISING);
-
+  flw_read(false);
+  //PCintPort::attachInterrupt(FLW, &flw_read, RISING);
+  
   // Encoder settings
   pinMode(ENC_PUSH, INPUT); 
   digitalWrite(ENC_PUSH, HIGH);
@@ -443,6 +456,8 @@ void setup() {
   flw_pulses = eeprom_read(EEPROM_CURRENT_PULSES_ADDR);
   flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
   app_target_liters = eeprom_read(EEPROM_TARGET_LITERS_ADDR);
+  flw_pulses_old = flw_pulses;  
+  
   serial_setup();
 }
 
@@ -451,8 +466,9 @@ void setup() {
 // --------------------------------------------------------
 void loop(){ 
   // If encoder has moved or has been pushed
-  if (encoder_button_state == 1 || (lastReportedPos != encoderPos)) {
+  if (encoder_button_state == 1 || (lastReportedPos != encoderPos) || (flw_pulses_old != flw_pulses) ) {
     lcd.clear();
+
     switch (app_get_state()) {
     case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
       vlv_close();
@@ -468,6 +484,8 @@ void loop(){
       eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_running_mode();
+      flw_pulses_old = flw_pulses;
+      delay(100);
       // push button may interrupt to close valve and return to APP_WAITING mode
       break;
     case APP_SETTING: // App is in setting mode, valve is closed
@@ -570,6 +588,8 @@ void button_pushed() {
       // We were in options mode, so see which option was choosen.
       switch (app_choice) {
       case CHOICE_CANCEL:
+        // init flow meter variables
+        flw_pulses_old = flw_pulses;
         app_set_state(APP_WAITING); // Canceling any action, go to waiting state
         break;
       case CHOICE_RUNNING:
@@ -595,10 +615,33 @@ void button_pushed() {
 // --------------------------------------------------------
 // Interrupts for flowmeter
 // --------------------------------------------------------
-void flw_read() {
+//void flw_read() {
+//  uint8_t x = digitalRead(FLW);
+//  if (x == flw_last_pinstate) {
+//    flw_last_ratetimer++;
+//    return; // nothing changed!
+//  }
+//  if (x == HIGH) {
+//    //low to high transition!
+//    flw_pulses++;
+//  }
+//  flw_last_pinstate = x;
+//  flw_rate = 1000.0;
+//  flw_rate /= flw_last_ratetimer; // in hertz
+//  flw_last_ratetimer = 0;
+//  flw_total_pulses += flw_pulses;
+//}
+
+
+/*************************************************
+ * interruptions for flowsensor reading.
+ **************************************************/
+// Interrupt is called once a millisecond, looks for any flw_pulses from the sensor!
+SIGNAL(TIMER0_COMPA_vect) {
   uint8_t x = digitalRead(FLW);
   if (x == flw_last_pinstate) {
     flw_last_ratetimer++;
+    flw_pulses_old = flw_pulses;
     return; // nothing changed!
   }
   if (x == HIGH) {
@@ -609,10 +652,21 @@ void flw_read() {
   flw_rate = 1000.0;
   flw_rate /= flw_last_ratetimer; // in hertz
   flw_last_ratetimer = 0;
-  flw_total_pulses += flw_pulses;
+  flw_total_pulses = flw_pulses;
 }
 
-
+void flw_read(boolean v) {
+  if (v) {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+  } 
+  else {
+    // do not call the interrupt function COMPA anymore
+    TIMSK0 &= ~_BV(OCIE0A);
+  }
+}
 
 
 
