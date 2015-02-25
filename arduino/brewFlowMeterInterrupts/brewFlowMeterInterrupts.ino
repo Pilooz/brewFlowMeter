@@ -10,7 +10,6 @@
  * @TODO : code optimization
  * -> delete getters and setters for app_(previous_)status 
  * -> See what PORT doesn't need any interrupt (think about PORT D?)
- * -> See if Wire.h is needed (for lcd pwm drivering ?)
  * code implementation
  * -> See what it blinks when starting program (after setting screen)
  * -> Bug on total liter count : after several flown, eeprom r/w pb ?
@@ -283,29 +282,38 @@ void lcd_splash_screen() {
  *  [Run] [Set] [x]
  **************************************************/
 void lcd_options_mode() {
+  String text = "Choice ?        ";
+  String menu = " x  run  set > ";
   encoderPos = abs(encoderPos)%3;
-  // background color Orange
-  lcd_setbacklight(255, 50, 0);
-  // first line
-  lcd.setCursor(0, 0);
-  lcd.print("Choice ?        "); 
-  // second line
-  lcd.setCursor(0, 1);
+  app_choice = encoderPos;
   switch ((int)encoderPos) {
   case 0:
-    lcd.print(" run   set  [x] "); 
+    text = "Cancel...       ";
+    menu = "[x] run  set  > "; 
     break;
   case 1:
-    lcd.print("[run]  set   x  "); 
+    text = "Open valve...   ";
+    menu = " x [run] set  > "; 
     break;
   case 2:
-    lcd.print(" run  [set]  x  "); 
+    text = "Set quantity... ";
+    menu = " x  run [set] > "; 
+    break;
+  case 3:
+    text = "Other options...";
+    menu = " x  run  set [>]"; 
     break;
   default:
-    lcd.print(" run   set   x  "); 
+    text = "Choice ?        ";
+    menu = " x  run  set  > "; 
     break;
   }
-  app_choice = encoderPos;
+  // background color Orange
+  lcd_setbacklight(255, 50, 0);
+  lcd.setCursor(0, 0);
+  lcd.print(text); 
+  lcd.setCursor(0, 1);
+  lcd.print(menu); 
 }
 
 /*************************************************
