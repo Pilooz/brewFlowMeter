@@ -634,27 +634,6 @@ void button_pushed() {
   interrupts();
 }
 
-// --------------------------------------------------------
-// Interrupts for flowmeter
-// --------------------------------------------------------
-//void flw_read() {
-//  uint8_t x = digitalRead(FLW);
-//  if (x == flw_last_pinstate) {
-//    flw_last_ratetimer++;
-//    return; // nothing changed!
-//  }
-//  if (x == HIGH) {
-//    //low to high transition!
-//    flw_pulses++;
-//  }
-//  flw_last_pinstate = x;
-//  flw_rate = 1000.0;
-//  flw_rate /= flw_last_ratetimer; // in hertz
-//  flw_last_ratetimer = 0;
-//  flw_total_pulses += flw_pulses;
-//}
-
-
 /*************************************************
  * interruptions for flowsensor reading.
  **************************************************/
