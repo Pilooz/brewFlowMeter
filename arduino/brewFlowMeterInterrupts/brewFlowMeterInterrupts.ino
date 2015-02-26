@@ -382,7 +382,7 @@ void lcd_waiting_mode() {
   
   // first line
   lcd.setCursor(0, 0);
-  lcd.print(flw_rate);
+  lcd.print(flw_rate, 0);
   lcd.print("Hz "); 
   lcd.print(total_liters);
   lcd.print(" L");
@@ -505,6 +505,8 @@ void loop(){
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_running_mode();
       flw_pulses_old = flw_pulses;
+      // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
+      // as it is read every milliseconde.
       delay(100);
       // push button may interrupt to close valve and return to APP_WAITING mode
       break;
