@@ -279,12 +279,12 @@ void lcd_splash_screen() {
  * Step : APP_OPTIONS
  * displaying :
  *  Choice ?
- *  [Run] [Set] [x]
+ *  [Run] [Set] [x] >
  **************************************************/
 void lcd_options_mode() {
   String text = "Choice ?        ";
   String menu = " x  run  set > ";
-  encoderPos = abs(encoderPos)%3;
+  encoderPos = abs(encoderPos)%6;
   app_choice = encoderPos;
   switch ((int)encoderPos) {
   case 0:
@@ -300,20 +300,32 @@ void lcd_options_mode() {
     menu = " x  run [set] > "; 
     break;
   case 3:
-    text = "Other options...";
+    text = "Next options... ";
     menu = " x  run  set [>]"; 
+    break;
+  case 4:
+    text = "Prev options... ";
+    menu = " [<] reset      "; 
+    break;
+  case 5:
+    text = "Reset eeprom... ";
+    menu = " < [reset]      "; 
     break;
   default:
     text = "Choice ?        ";
     menu = " x  run  set  > "; 
     break;
   }
+  lcd_print_option_screen(text, menu);
+}
+
+void lcd_print_option_screen(String l1, String l2) {
   // background color Orange
   lcd_setbacklight(255, 50, 0);
   lcd.setCursor(0, 0);
-  lcd.print(text); 
+  lcd.print(l1); 
   lcd.setCursor(0, 1);
-  lcd.print(menu); 
+  lcd.print(l2); 
 }
 
 /*************************************************
