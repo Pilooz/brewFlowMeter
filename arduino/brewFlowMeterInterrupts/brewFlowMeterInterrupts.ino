@@ -26,6 +26,9 @@
 
 #define APP_VERSION "1.0"
 
+// Soft reset pin, connected to reset
+#define SOFT_RESET 12
+
 // Liquid Flow sensor
 #define FLW 2
 
@@ -70,9 +73,11 @@
 // push button may set desired volume and return to APP_RUNNING, APP_SETTING, or APP_WAITING mode
 #define APP_OPTIONS 4
 // Choices on Options screen
-#define CHOICE_RUNNING 1
-#define CHOICE_SETTING 2
-#define CHOICE_CANCEL  0
+#define CHOICE_RUNNING  1
+#define CHOICE_SETTING  2
+#define CHOICE_CANCEL   0
+#define CHOICE_OPTIONS2 3
+#define CHOICE_RESET    5
 
 // Constants for eeprom addresses
 #define EEPROM_TOTAL_PULSES_ADDR 0
@@ -131,6 +136,7 @@ int app_previous_status = APP_WAITING;
 int app_choice = CHOICE_CANCEL;
 String app_error = "";
 
+
 /*************************************************
  * Writing a float in EEPROM
  **************************************************/
@@ -151,6 +157,16 @@ float eeprom_read(int addr) {
     buf[i] = EEPROM.read(addr+i);
   }
   return f;
+}
+
+/*************************************************
+ * Soft Reset, deleting all stored values
+ **************************************************/
+void soft_reset() {
+  eeprom_write(EEPROM_CURRENT_PULSES_ADDR, 0);
+  eeprom_write(EEPROM_TOTAL_PULSES_ADDR, 0);
+  eeprom_write(EEPROM_TARGET_LITERS_ADDR, 0);
+  digitalWrite(SOFT_RESET, LOW);
 }
 
 /*************************************************
@@ -432,6 +448,10 @@ void serial_setup() {
 // Setup
 // --------------------------------------------------------
 void setup() {
+  // Setup soft reset pin to high.
+  pinMode(SOFT_RESET, OUTPUT);
+  digitalWrite(SOFT_RESET, HIGH);
+  
   // LCD
   // Setup backlight color.
   pinMode(LCD_R, OUTPUT);
@@ -603,6 +623,7 @@ void button_pushed() {
       eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);
       // Setting the pulses to zero.
       flw_pulses = 0;
+      eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
       app_set_state(APP_WAITING);
       break;
 
@@ -619,6 +640,12 @@ void button_pushed() {
         break;
       case CHOICE_SETTING:
         app_set_state(APP_SETTING);
+        break;
+      case CHOICE_OPTIONS2:
+        app_set_state(APP_OPTIONS);
+        break;
+      case CHOICE_RESET:
+        soft_reset();
         break;
       default:
         break;
