@@ -42,8 +42,8 @@
 #define LCD_G 6
 #define LCD_B 9
 
-// Solenoid Valve, on 13 to have build-in Led status.
-#define VLV 13
+// Solenoid Valve, on 11 (to have PWM management for futher flow controlling ?)
+#define VLV 11
 
 #define ENC_STEP  0.1
 
