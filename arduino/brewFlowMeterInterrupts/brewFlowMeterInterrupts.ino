@@ -164,7 +164,8 @@ void soft_reset() {
   eeprom_write(EEPROM_CURRENT_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TOTAL_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TARGET_LITERS_ADDR, 0);
-  digitalWrite(SOFT_RESET, LOW);
+  //digitalWrite(SOFT_RESET, LOW);
+  asm volatile ("  jmp 0");
 }
 
 /*************************************************
