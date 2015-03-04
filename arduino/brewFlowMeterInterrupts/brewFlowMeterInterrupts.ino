@@ -330,7 +330,7 @@ void lcd_options_mode() {
     menu = " x  run  set  > "; 
     break;
   }
-  lcd_print_option_screen(text, menu);
+  lcd_print_option_screen(menu, text);
 }
 
 void lcd_print_option_screen(String l1, String l2) {
