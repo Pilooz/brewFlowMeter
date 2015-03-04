@@ -235,7 +235,7 @@ float calculateLiters(uint16_t p) {
  **************************************************/
 void lcd_adjust_backlight(int pct) {
   // mapping pct between 0 and 255
-  int p = (int)((pct/100)*255);
+  int p = (int)(255*pct/100);
   //map(pct, 0, 100, 0, 100);
   lcd_setbacklight(p, 255-p, 0);
 }
@@ -298,7 +298,7 @@ void lcd_options_mode() {
   int array_options_size = 4;
   String menus[] = {"   [ cancel ]   ","    [ run ]     ","    [ set ]     ","   [ reset ]    "};
   String texts[] = {"Back to main screen","Open valve","Set quantity","Reset stored values"};
-  app_choice = abs(encoderPos+10)%array_options_size;
+  app_choice = abs(encoderPos + array_options_size * 100) % array_options_size;
   String menu = menus[app_choice];
   String text = texts[app_choice];
   if (menu == "" && text == "") {
@@ -390,7 +390,7 @@ void lcd_waiting_mode() {
  * Step : APP_RUNNING
  * displaying :
  *  flowrate L/s     total volume L
- *  percent flow %   current passed volume / desired volume 
+ *  percent flow %   current passed volume / desired volume  
  * @TODO : rounding values for a pretty display 
  **************************************************/
 void lcd_running_mode() {
