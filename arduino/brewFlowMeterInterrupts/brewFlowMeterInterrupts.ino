@@ -71,11 +71,10 @@
 // push button may set desired volume and return to APP_RUNNING, APP_SETTING, or APP_WAITING mode
 #define APP_OPTIONS 4
 // Choices on Options screen
+#define CHOICE_CANCEL   0
 #define CHOICE_RUNNING  1
 #define CHOICE_SETTING  2
-#define CHOICE_CANCEL   0
-#define CHOICE_OPTIONS2 3
-#define CHOICE_RESET    5
+#define CHOICE_RESET    3
 
 // Constants for eeprom addresses
 #define EEPROM_TOTAL_PULSES_ADDR 0
@@ -296,39 +295,15 @@ void lcd_splash_screen() {
  *  [Run] [Set] [x] >
  **************************************************/
 void lcd_options_mode() {
-  String text = "Choice ?        ";
-  String menu = " x  run  set > ";
-  encoderPos = abs(encoderPos)%6;
-  app_choice = encoderPos;
-  switch ((int)encoderPos) {
-  case 0:
-    text = "Cancel...       ";
-    menu = "[x] run  set  > "; 
-    break;
-  case 1:
-    text = "Open valve...   ";
-    menu = " x [run] set  > "; 
-    break;
-  case 2:
-    text = "Set quantity... ";
-    menu = " x  run [set] > "; 
-    break;
-  case 3:
-    text = "Next options... ";
-    menu = " x  run  set [>]"; 
-    break;
-  case 4:
-    text = "Prev options... ";
-    menu = " [<] reset      "; 
-    break;
-  case 5:
-    text = "Reset eeprom... ";
-    menu = " < [reset]      "; 
-    break;
-  default:
-    text = "Choice ?        ";
-    menu = " x  run  set  > "; 
-    break;
+  int array_options_size = 4;
+  String menus[] = {"   [ cancel ]   ","    [ run ]     ","    [ set ]     ","   [ reset ]    "};
+  String texts[] = {"Back to main screen","Open valve","Set quantity","Reset stored values"};
+  app_choice = abs(encoderPos+10)%array_options_size;
+  String menu = menus[app_choice];
+  String text = texts[app_choice];
+  if (menu == "" && text == "") {
+    menu = "Choose option by"; 
+    text = "turning button  ";
   }
   lcd_print_option_screen(menu, text);
 }
@@ -631,9 +606,6 @@ void button_pushed() {
         break;
       case CHOICE_SETTING:
         app_set_state(APP_SETTING);
-        break;
-      case CHOICE_OPTIONS2:
-        app_set_state(APP_OPTIONS);
         break;
       case CHOICE_RESET:
         soft_reset();
