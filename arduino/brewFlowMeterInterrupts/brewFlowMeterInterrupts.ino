@@ -24,9 +24,6 @@
 
 #define APP_VERSION "1.0"
 
-// Soft reset pin, connected to reset
-#define SOFT_RESET 12
-
 // Liquid Flow sensor
 #define FLW 2
 
@@ -164,7 +161,6 @@ void soft_reset() {
   eeprom_write(EEPROM_CURRENT_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TOTAL_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TARGET_LITERS_ADDR, 0);
-  //digitalWrite(SOFT_RESET, LOW);
   asm volatile ("  jmp 0");
 }
 
@@ -447,10 +443,6 @@ void serial_setup() {
 // Setup
 // --------------------------------------------------------
 void setup() {
-  // Setup soft reset pin to high.
-  pinMode(SOFT_RESET, OUTPUT);
-  digitalWrite(SOFT_RESET, HIGH);
-  
   // LCD
   // Setup backlight color.
   pinMode(LCD_R, OUTPUT);
