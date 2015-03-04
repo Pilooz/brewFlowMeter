@@ -15,10 +15,8 @@
  * -> Bug on total liter count : after several flown, eeprom r/w pb ?
  
  **********************************************************************************/
-//#define NO_PORTB_PINCHANGES // to indicate that port b will not be used for pin change interrupts
-//#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
-//#define NO_PORTD_PINCHANGES // to indicate that port d will not be used for pin change interrupts
-// #define       DISABLE_PCINT_MULTI_SERVICE
+#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
+
 #include <EEPROM.h>
 #include <PinChangeInt.h>
 #include <LiquidCrystal.h>
