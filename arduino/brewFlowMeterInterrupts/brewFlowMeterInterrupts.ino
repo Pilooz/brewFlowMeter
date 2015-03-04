@@ -25,8 +25,6 @@
 #include <LiquidCrystal.h>
 #include <Wire.h>
 
-#define APP_VERSION "1.0"
-
 // Liquid Flow sensor
 #define FLW 2
 
@@ -85,6 +83,7 @@
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
 LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
 
+String app_version = "1.0";
 boolean debug_mode = true;
 
 // encoder variables
@@ -260,18 +259,21 @@ void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 /*************************************************
+ * Printing the 2 lines screen to lcd
+ **************************************************/
+void lcd_print_screen(String l1, String l2) {
+  lcd.setCursor(0, 0);
+  lcd.print(l1); 
+  lcd.setCursor(0, 1);
+  lcd.print(l2); 
+}
+
+/*************************************************
  * Displaying a splash screen at startup
  **************************************************/
 void lcd_splash_screen() {
-  // first line
-  lcd.setCursor(0, 0);
-  lcd.print(" BrewFlowMeter ");  
-  // second line
-  lcd.setCursor(0, 1);
-  lcd.print(" v");
-  lcd.print(APP_VERSION);
-  lcd.print(" by Pilooz ");
-
+  lcd_print_screen(" BrewFlowMeter ", " v" + app_version + " by Pilooz ");
+  
   // background color
   for (int i = 0; i < 255; i++) {
     lcd_setbacklight(i, 0, 255-i);
@@ -305,16 +307,9 @@ void lcd_options_mode() {
     menu = "Choose option by"; 
     text = "turning button  ";
   }
-  lcd_print_option_screen(menu, text);
-}
-
-void lcd_print_option_screen(String l1, String l2) {
   // background color Orange
   lcd_setbacklight(255, 50, 0);
-  lcd.setCursor(0, 0);
-  lcd.print(l1); 
-  lcd.setCursor(0, 1);
-  lcd.print(l2); 
+  lcd_print_screen(menu, text);
 }
 
 /*************************************************
@@ -333,13 +328,7 @@ void lcd_setting_mode() {
   app_target_liters = encoderPos * ENC_STEP;
   // background color Orange
   lcd_setbacklight(255, 165, 0);
-  // first line
-  lcd.setCursor(0, 0);
-  lcd.print("Target volume ? "); 
-  // second line
-  lcd.setCursor(0, 1);
-  lcd.print(app_target_liters);
-  lcd.print(" L ");
+  lcd_print_screen("Target volume ? ", (String)app_target_liters + " L ");
 }
 
 /*************************************************
@@ -368,21 +357,7 @@ void lcd_waiting_mode() {
     // Forcing waiting State, this stat closes valve
     app_set_state(APP_WAITING);
   }
-  
-  // first line
-  lcd.setCursor(0, 0);
-  lcd.print(flw_rate, 0);
-  lcd.print("Hz "); 
-  lcd.print(total_liters);
-  lcd.print(" L");
-  // second line
-  lcd.setCursor(0, 1);
-  lcd.print((int)pct);
-  lcd.print("% ");
-  lcd.print(liters);
-  lcd.print("/");
-  lcd.print(app_target_liters);
-  lcd.print(" L");
+  lcd_print_screen((int)flw_rate + "Hz " + (String)total_liters + " L", (int)pct + "% " + (String)liters + "/" + (String)app_target_liters + " L");
 }
 
 /*************************************************
@@ -391,7 +366,6 @@ void lcd_waiting_mode() {
  * displaying :
  *  flowrate L/s     total volume L
  *  percent flow %   current passed volume / desired volume  
- * @TODO : rounding values for a pretty display 
  **************************************************/
 void lcd_running_mode() {
   // Same screen as waiting mode for the moment
