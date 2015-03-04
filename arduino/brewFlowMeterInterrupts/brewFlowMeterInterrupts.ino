@@ -13,6 +13,9 @@
  * code implementation
  * -> See what it blinks when starting program (after setting screen)
  * -> Bug on total liter count : after several flown, eeprom r/w pb ?
+ * -> As the debouncing is old style (with pullup pins) https://hifiduino.files.wordpress.com/2010/10/rotenc.jpg
+ *    put the encoder pins A&B in pullup mode and test.
+ *    see if the debounce delay is not to long ?
  
  **********************************************************************************/
 #define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
@@ -97,8 +100,8 @@ long lastDebounceTimeA = 0;  // the last time the output pin A was toggled
 long debounceDelayA = 10;    // the debounce time
 long lastDebounceTimeB = 0;  // the last time the output pin B was toggled
 long debounceDelayB = 10;    // the debounce time
-
-
+long lastDebounceTimeP = 0;  // the last time the output Button was pushed
+long debounceDelayP = 100;    // the debounce time; increase if the output flickers
 
 //    uint8_t latest_interrupted_pin;
 //    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
@@ -580,12 +583,9 @@ void doEncoderB(){
  * This is the Interface Controller
  * This is called on interrupt
  **************************************************/
-long lastDebounceTime = 0;  // the last time the output pin was toggled
-long debounceDelay = 100;    // the debounce time; increase if the output flickers
-
 void button_pushed() {
   noInterrupts();
-  if( ((long)millis() - lastDebounceTime) > debounceDelay){
+  if( ((long)millis() - lastDebounceTimeP) > debounceDelayP){
     // Marking the utton as pushed
     encoder_button_state = 1;
     int previous_screen = app_get_previous_state();
