@@ -14,7 +14,7 @@
  * -> See what it blinks when starting program (after setting screen)
  * -> Bug on total liter count : after several flown, eeprom r/w pb ?
  *    see if the debounce delay is not to long ?
- 
+ * 
  **********************************************************************************/
 #define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
 
@@ -217,7 +217,7 @@ float calculateLiters(uint16_t p) {
   if (p > 0) {
     float l = p;
     l /= 8.1;
-    l -= 6;
+//??????? Need to be precised ????    l -= 6;
     l /= 60.0;
     return l;
   }
@@ -269,7 +269,7 @@ void lcd_print_screen(String l1, String l2) {
  **************************************************/
 void lcd_splash_screen() {
   lcd_print_screen(" BrewFlowMeter ", " v" + app_version + " by Pilooz ");
-  
+
   // background color
   for (int i = 0; i < 255; i++) {
     lcd_setbacklight(i, 0, 255-i);
@@ -293,13 +293,22 @@ void lcd_splash_screen() {
  *  [Run] [Set] [x] >
  **************************************************/
 void lcd_options_mode() {
-  String menus1[] = {"[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "};
-  String menus2[] = {" set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "};
-  if (lastReportedPos < encoderPos ) { app_choice++; } else { app_choice--; }
-  if (app_choice < 0 || app_choice > 3) { app_choice = 0; }      
+  String menus1[] = {
+    "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "    };
+  String menus2[] = {
+    " set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "    };
+  if (lastReportedPos < encoderPos ) { 
+    app_choice++; 
+  } 
+  //    else { 
+  //      app_choice--; 
+  //    }
+  if (app_choice < 0 || app_choice > 3) { 
+    app_choice = 0; 
+  }      
   // background color Orange
   lcd_setbacklight(255, 50, 0);
-   //menu2 = (String)encoderPos + " / " + (String)app_choice; // "turning button  ";
+  //menu2 = (String)encoderPos + " / " + (String)app_choice; // "turning button  ";
   lcd_print_screen(menus1[app_choice], menus2[app_choice]);
 }
 
@@ -319,7 +328,13 @@ void lcd_setting_mode() {
   app_target_liters = encoderPos * ENC_STEP;
   // background color Orange
   lcd_setbacklight(255, 165, 0);
-  lcd_print_screen("Target volume ? ", (String)app_target_liters + " L ");
+  // first line
+  lcd.setCursor(0, 0);
+  lcd.print("Target volume ? "); 
+  // second line
+  lcd.setCursor(0, 1);
+  lcd.print(app_target_liters);
+  lcd.print(" L ");
 }
 
 /*************************************************
@@ -336,19 +351,33 @@ void lcd_waiting_mode() {
   if (app_target_liters > 0) {
     pct = (int)(100 *liters / app_target_liters);
   }
-  
+
   if (vlv_status == HIGH) {
     // Set backlight to a various color that say it's open.
     // The color changes on pct increase.
     lcd_adjust_backlight(pct);
   }
-  
-  // see if we got 100% of target?
-  if (pct == 100) {
+
+  // see if we got 99% of target?
+  if (pct >= 99) {
     // Forcing waiting State, this stat closes valve
     app_set_state(APP_WAITING);
   }
-  lcd_print_screen((int)flw_rate + "Hz " + (String)total_liters + " L", (int)pct + "% " + (String)liters + "/" + (String)app_target_liters + " L");
+
+  // first line
+  lcd.setCursor(0, 0);
+  lcd.print(flw_rate, 0);
+  lcd.print("Hz "); 
+  lcd.print(total_liters);
+  lcd.print(" L");
+  // second line
+  lcd.setCursor(0, 1);
+  lcd.print(pct, 0);
+  lcd.print("% ");
+  lcd.print(liters);
+  lcd.print("/");
+  lcd.print(app_target_liters);
+  lcd.print(" L");
 }
 
 /*************************************************
@@ -407,7 +436,7 @@ void setup() {
   flw_last_pinstate = HIGH;
   flw_read(false);
   //PCintPort::attachInterrupt(FLW, &flw_read, RISING);
-  
+
   // Encoder settings
   pinMode(ENC_PUSH, INPUT_PULLUP); 
   digitalWrite(ENC_PUSH, HIGH);
@@ -431,7 +460,7 @@ void setup() {
   flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
   app_target_liters = eeprom_read(EEPROM_TARGET_LITERS_ADDR);
   flw_pulses_old = flw_pulses;  
-  
+
   serial_setup();
 }
 
@@ -617,6 +646,8 @@ void flw_read(boolean v) {
     TIMSK0 &= ~_BV(OCIE0A);
   }
 }
+
+
 
 
 
