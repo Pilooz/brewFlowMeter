@@ -416,9 +416,9 @@ void setup() {
   //PCintPort::attachInterrupt(FLW, &flw_read, RISING);
   
   // Encoder settings
-  pinMode(ENC_PUSH, INPUT); 
+  pinMode(ENC_PUSH, INPUT_PULLUP); 
   digitalWrite(ENC_PUSH, HIGH);
-  PCintPort::attachInterrupt(ENC_PUSH, &button_pushed, RISING);
+  PCintPort::attachInterrupt(ENC_PUSH, &button_pushed, CHANGE);
   pinMode(ENC_A, INPUT_PULLUP); 
   digitalWrite(ENC_A, HIGH);
   PCintPort::attachInterrupt(ENC_A, &doEncoderA, CHANGE);
@@ -502,25 +502,21 @@ void loop(){
 // --------------------------------------------------------
 // Interrupt on A changing state
 void doEncoderA(){
-  noInterrupts();
   if( ((long)millis() - lastDebounceTimeA) > debounceDelayA){
     // Test transition
     A_set = digitalRead(ENC_A) == HIGH;
     // and adjust counter + if A leads B
     encoderPos += (A_set != B_set) ? -1 : +1;
   }
-  interrupts();  
 }
 
 // Interrupt on B changing state
 void doEncoderB(){
-  noInterrupts();
   if( ((long)millis() - lastDebounceTimeB) > debounceDelayB){  // Test transition
     B_set = digitalRead(ENC_B) == HIGH;
     // and adjust counter + if B follows A
     encoderPos += (A_set == B_set) ? -1 : +1;
   }
-  interrupts();  
 }
 
 /*************************************************
@@ -531,9 +527,8 @@ void doEncoderB(){
  * This is called on interrupt
  **************************************************/
 void button_pushed() {
-  noInterrupts();
   if( ((long)millis() - lastDebounceTimeP) > debounceDelayP){
-    // Marking the utton as pushed
+    // Marking the button as pushed
     encoder_button_state = 1;
     int previous_screen = app_get_previous_state();
     // See where we were before this event
@@ -593,7 +588,6 @@ void button_pushed() {
       break;
     } 
   } 
-  interrupts();
 }
 
 /*************************************************
