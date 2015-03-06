@@ -92,12 +92,10 @@ boolean B_set = false;
 // The bstate of the button 0 : rest, 1 pushed
 int encoder_button_state = 0;
 
-long lastDebounceTimeA = 0;  // the last time the output pin A was toggled
-long debounceDelayA = 10;    // the debounce time
-long lastDebounceTimeB = 0;  // the last time the output pin B was toggled
-long debounceDelayB = 10;    // the debounce time
+long lastDebounceTime = 0;  // the last time the output pin A & B was toggled
+long debounceDelay = 20;    // the debounce Delay for encoder pin A & B
 long lastDebounceTimeP = 0;  // the last time the output Button was pushed
-long debounceDelayP = 100;    // the debounce time; increase if the output flickers
+long debounceDelayP = 200;    // the debounce Delay for push button; 
 
 //    uint8_t latest_interrupted_pin;
 //    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
@@ -295,19 +293,14 @@ void lcd_splash_screen() {
  *  [Run] [Set] [x] >
  **************************************************/
 void lcd_options_mode() {
-  int array_options_size = 4;
-  String menus[] = {"   [ cancel ]   ","    [ run ]     ","    [ set ]     ","   [ reset ]    "};
-  String texts[] = {"Back to main screen","Open valve","Set quantity","Reset stored values"};
-  app_choice = abs(encoderPos + array_options_size * 100) % array_options_size;
-  String menu = menus[app_choice];
-  String text = texts[app_choice];
-  if (menu == "" && text == "") {
-    menu = "Choose option by"; 
-    text = "turning button  ";
-  }
+  String menus1[] = {"[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "};
+  String menus2[] = {" set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "};
+  if (lastReportedPos < encoderPos ) { app_choice++; } else { app_choice--; }
+  if (app_choice < 0 || app_choice > 3) { app_choice = 0; }      
   // background color Orange
   lcd_setbacklight(255, 50, 0);
-  lcd_print_screen(menu, text);
+   //menu2 = (String)encoderPos + " / " + (String)app_choice; // "turning button  ";
+  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
 }
 
 /*************************************************
@@ -480,7 +473,6 @@ void loop(){
       break;
     case APP_OPTIONS: // App is in confirmation mode, valve is closed
       vlv_close();
-      // displaying a confirmation message on first line and  run / set / cancel choice on second line.
       lcd_options_mode();
       // push button may set desired volume and return to APP_WAITING mode
       break;
@@ -502,7 +494,7 @@ void loop(){
 // --------------------------------------------------------
 // Interrupt on A changing state
 void doEncoderA(){
-  if( ((long)millis() - lastDebounceTimeA) > debounceDelayA){
+  if( ((long)millis() - lastDebounceTime) > debounceDelay){
     // Test transition
     A_set = digitalRead(ENC_A) == HIGH;
     // and adjust counter + if A leads B
@@ -512,7 +504,7 @@ void doEncoderA(){
 
 // Interrupt on B changing state
 void doEncoderB(){
-  if( ((long)millis() - lastDebounceTimeB) > debounceDelayB){  // Test transition
+  if( ((long)millis() - lastDebounceTime) > debounceDelay){  // Test transition
     B_set = digitalRead(ENC_B) == HIGH;
     // and adjust counter + if B follows A
     encoderPos += (A_set == B_set) ? -1 : +1;
@@ -540,6 +532,7 @@ void button_pushed() {
 
     case APP_WAITING:   
       // We were on Waiting state, so go to APP_OPTIONS
+      encoderPos = 0;
       app_set_state(APP_OPTIONS);
       break;
 
