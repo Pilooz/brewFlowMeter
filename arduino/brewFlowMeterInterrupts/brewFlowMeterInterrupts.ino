@@ -13,8 +13,6 @@
  * code implementation
  * -> See what it blinks when starting program (after setting screen)
  * -> Bug on total liter count : after several flown, eeprom r/w pb ?
- * -> As the debouncing is old style (with pullup pins) https://hifiduino.files.wordpress.com/2010/10/rotenc.jpg
- *    put the encoder pins A&B in pullup mode and test.
  *    see if the debounce delay is not to long ?
  
  **********************************************************************************/
@@ -421,10 +419,10 @@ void setup() {
   pinMode(ENC_PUSH, INPUT); 
   digitalWrite(ENC_PUSH, HIGH);
   PCintPort::attachInterrupt(ENC_PUSH, &button_pushed, RISING);
-  pinMode(ENC_A, INPUT); 
+  pinMode(ENC_A, INPUT_PULLUP); 
   digitalWrite(ENC_A, HIGH);
   PCintPort::attachInterrupt(ENC_A, &doEncoderA, CHANGE);
-  pinMode(ENC_B, INPUT); 
+  pinMode(ENC_B, INPUT_PULLUP); 
   digitalWrite(ENC_B, HIGH);
   PCintPort::attachInterrupt(ENC_B, &doEncoderB, CHANGE);
   encoderPos = 0;
