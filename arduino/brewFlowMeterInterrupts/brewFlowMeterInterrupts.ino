@@ -19,9 +19,11 @@
 #define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
 
 #include <EEPROM.h>
-#include <PinChangeInt.h>
+//#include <PinChangeInt.h>
 #include <LiquidCrystal.h>
 #include <Wire.h>
+#include <ClickEncoder.h>
+#include <TimerOne.h>
 
 // Liquid Flow sensor
 #define FLW 2
@@ -66,6 +68,7 @@
 // displaying a confirmation message on first line and  [run] [set] [x]
 // push button may set desired volume and return to APP_RUNNING, APP_SETTING, or APP_WAITING mode
 #define APP_OPTIONS 4
+
 // Choices on Options screen
 #define CHOICE_CANCEL   0
 #define CHOICE_RUNNING  1
@@ -85,17 +88,20 @@ String app_version = "1.0";
 boolean debug_mode = true;
 
 // encoder variables
+ClickEncoder *encoder;
 volatile int encoderPos = 0;
 volatile int lastReportedPos = 1;
-boolean A_set = false;
-boolean B_set = false;
+////boolean A_set = false;
+////boolean B_set = false;
 // The bstate of the button 0 : rest, 1 pushed
 int encoder_button_state = 0;
 
-long lastDebounceTime = 0;  // the last time the output pin A & B was toggled
-long debounceDelay = 20;    // the debounce Delay for encoder pin A & B
-long lastDebounceTimeP = 0;  // the last time the output Button was pushed
-long debounceDelayP = 200;    // the debounce Delay for push button; 
+/****
+ * long lastDebounceTime = 0;  // the last time the output pin A & B was toggled
+ * long debounceDelay = 20;    // the debounce Delay for encoder pin A & B
+ * long lastDebounceTimeP = 0;  // the last time the output Button was pushed
+ * long debounceDelayP = 200;    // the debounce Delay for push button; 
+ ****/
 
 //    uint8_t latest_interrupted_pin;
 //    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
@@ -217,7 +223,7 @@ float calculateLiters(uint16_t p) {
   if (p > 0) {
     float l = p;
     l /= 8.1;
-//??????? Need to be precised ????    l -= 6;
+    //??????? Need to be precised ????    l -= 6;
     l /= 60.0;
     return l;
   }
@@ -287,6 +293,29 @@ void lcd_splash_screen() {
 
 /*************************************************
  * Displaying data on lcd 
+ * Step : APP_RESET 
+ * displaying :
+ *  Reset values ?
+ *  [No] [Yes]
+ **************************************************/
+void lcd_reset_mode() {
+  String menus1[] = {
+    "Reset values ?  ", "Reset values ?  "};
+  String menus2[] = {
+    "   [No]  Yes    ", "    No   [Yes]  " };
+  if (lastReportedPos < encoderPos ) { 
+    app_choice++; 
+  } 
+  if (app_choice < 0 || app_choice > 3) { 
+    app_choice = 0; 
+  }      
+  // background color Orange
+  lcd_setbacklight(255, 50, 0);
+  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
+}
+
+/*************************************************
+ * Displaying data on lcd 
  * Step : APP_OPTIONS
  * displaying :
  *  Choice ?
@@ -294,9 +323,9 @@ void lcd_splash_screen() {
  **************************************************/
 void lcd_options_mode() {
   String menus1[] = {
-    "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "    };
+    "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "        };
   String menus2[] = {
-    " set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "    };
+    " set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "        };
   if (lastReportedPos < encoderPos ) { 
     app_choice++; 
   } 
@@ -360,6 +389,7 @@ void lcd_waiting_mode() {
 
   // see if we got 99% of target?
   if (pct >= 99) {
+    pct = 100;
     // Forcing waiting State, this stat closes valve
     app_set_state(APP_WAITING);
   }
@@ -432,24 +462,17 @@ void setup() {
 
   // Liquid Flow meter settings
   pinMode(FLW, INPUT_PULLUP);
-  //digitalWrite(FLW, LOW);
   flw_last_pinstate = HIGH;
   flw_read(false);
-  //PCintPort::attachInterrupt(FLW, &flw_read, RISING);
 
   // Encoder settings
-  pinMode(ENC_PUSH, INPUT_PULLUP); 
-  digitalWrite(ENC_PUSH, HIGH);
-  PCintPort::attachInterrupt(ENC_PUSH, &button_pushed, CHANGE);
-  pinMode(ENC_A, INPUT_PULLUP); 
-  digitalWrite(ENC_A, HIGH);
-  PCintPort::attachInterrupt(ENC_A, &doEncoderA, CHANGE);
-  pinMode(ENC_B, INPUT_PULLUP); 
-  digitalWrite(ENC_B, HIGH);
-  PCintPort::attachInterrupt(ENC_B, &doEncoderB, CHANGE);
+  encoder = new ClickEncoder(ENC_A, ENC_B, ENC_PUSH);
+  encoder->setAccelerationEnabled(false);
   encoderPos = 0;
   lastReportedPos = 0;
   encoder_button_state = 0;
+  Timer1.initialize(1000);
+  Timer1.attachInterrupt(timerIsr);
 
   // Setting initial state for screen application  
   app_previous_status = APP_SPLASH;
@@ -468,6 +491,26 @@ void setup() {
 // Main loop
 // --------------------------------------------------------
 void loop(){ 
+  encoderPos += encoder->getValue();
+  ClickEncoder::Button b = encoder->getButton();
+  if (b != ClickEncoder::Open) {
+    switch (b) {
+      case ClickEncoder::Pressed:
+      break;
+      case ClickEncoder::Held:
+      break;
+      case ClickEncoder::Released:
+      break;
+      case ClickEncoder::Clicked:
+      button_pushed();
+      break;
+      case ClickEncoder::DoubleClicked:
+      break;
+      default:
+      break;
+    }
+  }
+
   // If encoder has moved or has been pushed
   if (encoder_button_state == 1 || (lastReportedPos != encoderPos) || (flw_pulses_old != flw_pulses) ) {
     lcd.clear();
@@ -518,28 +561,6 @@ void loop(){
   }
 }
 
-// --------------------------------------------------------
-// Interrupts for Rotary encoder
-// --------------------------------------------------------
-// Interrupt on A changing state
-void doEncoderA(){
-  if( ((long)millis() - lastDebounceTime) > debounceDelay){
-    // Test transition
-    A_set = digitalRead(ENC_A) == HIGH;
-    // and adjust counter + if A leads B
-    encoderPos += (A_set != B_set) ? -1 : +1;
-  }
-}
-
-// Interrupt on B changing state
-void doEncoderB(){
-  if( ((long)millis() - lastDebounceTime) > debounceDelay){  // Test transition
-    B_set = digitalRead(ENC_B) == HIGH;
-    // and adjust counter + if B follows A
-    encoderPos += (A_set == B_set) ? -1 : +1;
-  }
-}
-
 /*************************************************
  * setting encoder event to pushed 
  * (when encoder button is pushed)
@@ -548,67 +569,65 @@ void doEncoderB(){
  * This is called on interrupt
  **************************************************/
 void button_pushed() {
-  if( ((long)millis() - lastDebounceTimeP) > debounceDelayP){
-    // Marking the button as pushed
-    encoder_button_state = 1;
-    int previous_screen = app_get_previous_state();
-    // See where we were before this event
-    switch (previous_screen) {
-    case APP_SPLASH:   
-      // We were on Waiting state, so go to APP_OPTIONS
-      app_set_state(APP_WAITING);
-      break;
+  // Marking the button as pushed
+  encoder_button_state = 1;
+  int previous_screen = app_get_previous_state();
+  // See where we were before this event
+  switch (previous_screen) {
+  case APP_SPLASH:   
+    // We were on Waiting state, so go to APP_OPTIONS
+    app_set_state(APP_WAITING);
+    break;
 
-    case APP_WAITING:   
-      // We were on Waiting state, so go to APP_OPTIONS
-      encoderPos = 0;
-      app_set_state(APP_OPTIONS);
-      break;
+  case APP_WAITING:   
+    // We were on Waiting state, so go to APP_OPTIONS
+    encoderPos = 0;
+    app_set_state(APP_OPTIONS);
+    break;
 
-    case APP_RUNNING:    
-      // We were in running mode, so close valve and go to APP_WAITING
-      // here we can write flw_total_pulses to EEPROM
-      eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
-      app_set_state(APP_WAITING);
-      break;
+  case APP_RUNNING:    
+    // We were in running mode, so close valve and go to APP_WAITING
+    // here we can write flw_total_pulses to EEPROM
+    eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
+    app_set_state(APP_WAITING);
+    break;
 
-    case APP_SETTING:   
-      // we were in setting mode, so validate setting and go to APP_WAITING
-      // here we can write app_target_liters to EEPROM
-      eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);
-      // Setting the pulses to zero.
-      flw_pulses = 0;
-      eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
-      app_set_state(APP_WAITING);
-      break;
+  case APP_SETTING:   
+    // we were in setting mode, so validate setting and go to APP_WAITING
+    // here we can write app_target_liters to EEPROM
+    eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);
+    // Setting the pulses to zero.
+    flw_pulses = 0;
+    eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
+    app_set_state(APP_WAITING);
+    break;
 
-    case APP_OPTIONS:   
-      // We were in options mode, so see which option was choosen.
-      switch (app_choice) {
-      case CHOICE_CANCEL:
-        // init flow meter variables
-        flw_pulses_old = flw_pulses;
-        app_set_state(APP_WAITING); // Canceling any action, go to waiting state
-        break;
-      case CHOICE_RUNNING:
-        app_set_state(APP_RUNNING); // Go to running mode, valve opened
-        break;
-      case CHOICE_SETTING:
-        app_set_state(APP_SETTING);
-        break;
-      case CHOICE_RESET:
-        soft_reset();
-        break;
-      default:
-        break;
-      }
+  case APP_OPTIONS:   
+    // We were in options mode, so see which option was choosen.
+    switch (app_choice) {
+    case CHOICE_CANCEL:
+      // init flow meter variables
+      flw_pulses_old = flw_pulses;
+      app_set_state(APP_WAITING); // Canceling any action, go to waiting state
+      break;
+    case CHOICE_RUNNING:
+      app_set_state(APP_RUNNING); // Go to running mode, valve opened
+      break;
+    case CHOICE_SETTING:
+      app_set_state(APP_SETTING);
+      break;
+    case CHOICE_RESET:
+      soft_reset();
       break;
     default:
-      // see if we need to reset something ?
-      app_error = "No known state for LCD ?";
-      app_set_state(APP_ERROR);
       break;
-    } 
+    }
+    break;
+  default:
+    // see if we need to reset something ?
+    app_error = "No known state for LCD ?";
+    app_set_state(APP_ERROR);
+    break;
   } 
 }
 
@@ -631,6 +650,9 @@ SIGNAL(TIMER0_COMPA_vect) {
   flw_rate = 1000.0;
   flw_rate /= flw_last_ratetimer; // in hertz
   flw_last_ratetimer = 0;
+  //
+  // WTF ????
+  // Why count total pulse here ?????
   flw_total_pulses = flw_pulses;
 }
 
@@ -646,6 +668,14 @@ void flw_read(boolean v) {
     TIMSK0 &= ~_BV(OCIE0A);
   }
 }
+
+/*************************************************
+ * interruptions for encoder reading
+ **************************************************/
+void timerIsr() {
+  encoder->service();
+}
+
 
 
 
