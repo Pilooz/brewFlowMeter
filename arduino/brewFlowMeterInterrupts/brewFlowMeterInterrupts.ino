@@ -528,8 +528,11 @@ void loop(){
       vlv_open();
       // Saving the current flw_pulses
       eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
+      flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_running_mode();
+      // Saving total pulses
+      eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
       flw_pulses_old = flw_pulses;
       // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
       // as it is read every milliseconde.
@@ -650,10 +653,6 @@ SIGNAL(TIMER0_COMPA_vect) {
   flw_rate = 1000.0;
   flw_rate /= flw_last_ratetimer; // in hertz
   flw_last_ratetimer = 0;
-  //
-  // WTF ????
-  // Why count total pulse here ?????
-  flw_total_pulses = flw_pulses;
 }
 
 void flw_read(boolean v) {
