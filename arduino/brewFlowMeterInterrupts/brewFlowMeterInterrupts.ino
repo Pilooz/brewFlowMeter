@@ -12,7 +12,6 @@
  * -> See what PORT doesn't need any interrupt (think about PORT D?)
  * code implementation
  * -> See what it blinks when starting program (after setting screen)
- * -> Bug on total liter count : after several flown, eeprom r/w pb ?
  *    see if the debounce delay is not to long ?
  * 
  **********************************************************************************/
@@ -520,6 +519,8 @@ void loop(){
       vlv_close();
       // Background color is blue, dodgerBlue.
       lcd_setbacklight(30, 144, 255);
+      // Reading saved value of total
+      flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_waiting_mode();
       // push button may open valve after APP_OPTIONS mode
@@ -528,15 +529,10 @@ void loop(){
       vlv_open();
       // Saving the current flw_pulses
       eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
-      flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
-      // displaying current passing volume, desired volume, total volume, flowrate
-      lcd_running_mode();
       // Saving total pulses
       eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
-      flw_pulses_old = flw_pulses;
-      // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
-      // as it is read every milliseconde.
-      delay(100);
+      // displaying current passing volume, desired volume, total volume, flowrate
+      lcd_running_mode();
       // push button may interrupt to close valve and return to APP_WAITING mode
       break;
     case APP_SETTING: // App is in setting mode, valve is closed
@@ -562,6 +558,10 @@ void loop(){
     lastReportedPos = encoderPos;
     encoder_button_state = 0; 
   }
+ //       // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
+ //     // as it is read every milliseconde.
+//      delay(100);
+
 }
 
 /*************************************************
@@ -647,6 +647,7 @@ SIGNAL(TIMER0_COMPA_vect) {
   }
   if (x == HIGH) {
     //low to high transition!
+    flw_total_pulses++;
     flw_pulses++;
   }
   flw_last_pinstate = x;
