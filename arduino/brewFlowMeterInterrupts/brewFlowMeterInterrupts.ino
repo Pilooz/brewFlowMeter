@@ -21,6 +21,7 @@
 //#include <PinChangeInt.h>
 #include <LiquidCrystal.h>
 #include <Wire.h>
+
 #include <ClickEncoder.h>
 #include <TimerOne.h>
 
@@ -40,7 +41,7 @@
 // Solenoid Valve, on 11 (to have PWM management for futher flow controlling ?)
 #define VLV 11
 
-#define ENC_STEP  0.1
+#define ENC_STEP  0.05
 
 // Application status
 #define APP_ERROR   -1000
@@ -163,7 +164,7 @@ void soft_reset() {
   eeprom_write(EEPROM_CURRENT_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TOTAL_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TARGET_LITERS_ADDR, 0);
-  asm volatile ("  jmp 0");
+  //asm volatile (" jmp 0");
 }
 
 /*************************************************
@@ -515,6 +516,12 @@ void loop(){
     lcd.clear();
 
     switch (app_get_state()) {
+//    case APP_SPLASH: // App is waiting for sensors or buttons changes : Valve is closed
+//      vlv_close();
+//      // displaying splash screen
+//      lcd_splash_screen();
+//      // push button may open valve after APP_OPTIONS mode
+//      break;
     case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
       vlv_close();
       // Background color is blue, dodgerBlue.
@@ -533,6 +540,9 @@ void loop(){
       eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
       // displaying current passing volume, desired volume, total volume, flowrate
       lcd_running_mode();
+      // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
+      // as it is read every milliseconde.
+      delay(100);      
       // push button may interrupt to close valve and return to APP_WAITING mode
       break;
     case APP_SETTING: // App is in setting mode, valve is closed
@@ -558,10 +568,6 @@ void loop(){
     lastReportedPos = encoderPos;
     encoder_button_state = 0; 
   }
- //       // Add delay to avoid blinking screen. This is not a pb for flowmeter reading
- //     // as it is read every milliseconde.
-//      delay(100);
-
 }
 
 /*************************************************
@@ -621,6 +627,8 @@ void button_pushed() {
       break;
     case CHOICE_RESET:
       soft_reset();
+      app_previous_status = APP_SPLASH;
+      lcd_splash_screen();
       break;
     default:
       break;
