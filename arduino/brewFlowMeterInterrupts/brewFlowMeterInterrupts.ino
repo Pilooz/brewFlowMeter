@@ -445,6 +445,15 @@ void serial_setup() {
 // Setup
 // --------------------------------------------------------
 void setup() {
+  // Encoder settings
+  encoder = new ClickEncoder(ENC_A, ENC_B, ENC_PUSH);
+  encoder->setAccelerationEnabled(false);
+  encoderPos = 0;
+  lastReportedPos = 0;
+  encoder_button_state = 0;
+  Timer1.initialize(1000);
+  Timer1.attachInterrupt(timerIsr);
+
   // LCD
   // Setup backlight color.
   pinMode(LCD_R, OUTPUT);
@@ -464,15 +473,6 @@ void setup() {
   pinMode(FLW, INPUT_PULLUP);
   flw_last_pinstate = HIGH;
   flw_read(false);
-
-  // Encoder settings
-  encoder = new ClickEncoder(ENC_A, ENC_B, ENC_PUSH);
-  encoder->setAccelerationEnabled(false);
-  encoderPos = 0;
-  lastReportedPos = 0;
-  encoder_button_state = 0;
-  Timer1.initialize(1000);
-  Timer1.attachInterrupt(timerIsr);
 
   // Setting initial state for screen application  
   app_previous_status = APP_SPLASH;
