@@ -325,7 +325,7 @@ void lcd_options_mode() {
   String menus1[] = {
     "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "        };
   String menus2[] = {
-    " set   reset    "," set   reset    ","[set]  reset    "," set  [reset]   "        };
+    " set     reset  "," set     reset  ","[set]    reset  "," set    [reset] "        };
   if (lastReportedPos < encoderPos ) { 
     app_choice++; 
   } 
@@ -396,8 +396,11 @@ void lcd_waiting_mode() {
 
   // first line
   lcd.setCursor(0, 0);
-  lcd.print(flw_rate, 0);
-  lcd.print("Hz "); 
+  float frac = (flw_rate - int(flw_rate)) * 10;
+  lcd.print(frac, 2);
+  lcd.print("L/min "); 
+//  lcd.print(flw_rate, 0);
+//  lcd.print("Hz "); 
   lcd.print(total_liters);
   lcd.print(" L");
   // second line
