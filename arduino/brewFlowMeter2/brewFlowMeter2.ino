@@ -19,11 +19,14 @@
 
 #include <EEPROM.h>
 //#include <PinChangeInt.h>
-#include <LiquidCrystal.h>
+//#include <LiquidCrystal.h>
 #include <Wire.h>
+#include "rgb_lcd.h"
 
 #include <ClickEncoder.h>
 #include <TimerOne.h>
+
+#include "valve.h"
 
 // Liquid Flow sensor
 #define FLW 2
@@ -80,9 +83,9 @@
 #define EEPROM_CURRENT_PULSES_ADDR 8
 #define EEPROM_TARGET_LITERS_ADDR 16
 
-
 // Liquid Crystal display on pins A0, A1, A2, A3, A4, A5
-LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
+//LiquidCrystal lcd(14, 15, 16, 17, 18, 19);
+rgb_lcd lcd;
 
 String app_version = "1.0";
 boolean debug_mode = true;
@@ -96,21 +99,12 @@ volatile int lastReportedPos = 1;
 // The bstate of the button 0 : rest, 1 pushed
 int encoder_button_state = 0;
 
-/****
- * long lastDebounceTime = 0;  // the last time the output pin A & B was toggled
- * long debounceDelay = 20;    // the debounce Delay for encoder pin A & B
- * long lastDebounceTimeP = 0;  // the last time the output Button was pushed
- * long debounceDelayP = 200;    // the debounce Delay for push button; 
- ****/
-
-//    uint8_t latest_interrupted_pin;
-//    uint8_t interrupt_count[20]={0}; // 20 possible arduino pins
-
 // LCD variables
 int lcd_brightness = 100;
 
-// Valve variables 0 : closed, 1:Opened
-int vlv_status = LOW;
+// Valve variables 0 : closed, 1 : Opened
+//int vlv_status = LOW;
+Valve valve(VLV);
 
 // Liquid Flow meter variables
 // count how many flw_pulses!
@@ -168,28 +162,6 @@ void soft_reset() {
 }
 
 /*************************************************
- * Closing solenoid Valve
- **************************************************/
-void vlv_close() {
-  if (vlv_status == HIGH) {
-    flw_read(false);
-    digitalWrite(VLV, LOW);
-    vlv_status = LOW;
-  }
-}
-
-/*************************************************
- * Opening solenoid Valve
- **************************************************/
-void vlv_open() {
-  if (vlv_status == LOW) {
-    flw_read(true);
-    digitalWrite(VLV, HIGH);
-    vlv_status = HIGH;
-  }
-}
-
-/*************************************************
  * Setter for application status
  **************************************************/
 void app_set_state(int s) {
@@ -231,212 +203,6 @@ float calculateLiters(uint16_t p) {
 }
 
 /*************************************************
- * adusting backlight color on lcd 
- * dealing with pct of volume flown
- **************************************************/
-void lcd_adjust_backlight(int pct) {
-  // mapping pct between 0 and 255
-  int p = (int)(255*pct/100);
-  //map(pct, 0, 100, 0, 100);
-  lcd_setbacklight(p, 255-p, 0);
-}
-
-/*************************************************
- * set backlight color on lcd
- **************************************************/
-void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
-  // normalize the red LED - its brighter than the rest!
-  r = map(r, 0, 255, 0, 100);
-  g = map(g, 0, 255, 0, 150);
-  r = map(r, 0, 255, 0, lcd_brightness);
-  g = map(g, 0, 255, 0, lcd_brightness);
-  b = map(b, 0, 255, 0, lcd_brightness);
-  // common anode so invert!
-  r = map(r, 0, 255, 255, 0);
-  g = map(g, 0, 255, 255, 0);
-  b = map(b, 0, 255, 255, 0);
-  analogWrite(LCD_R, r);
-  analogWrite(LCD_G, g);
-  analogWrite(LCD_B, b);
-}
-
-/*************************************************
- * Printing the 2 lines screen to lcd
- **************************************************/
-void lcd_print_screen(String l1, String l2) {
-  lcd.setCursor(0, 0);
-  lcd.print(l1); 
-  lcd.setCursor(0, 1);
-  lcd.print(l2); 
-}
-
-/*************************************************
- * Displaying a splash screen at startup
- **************************************************/
-void lcd_splash_screen() {
-  lcd_print_screen(" BrewFlowMeter ", " v" + app_version + " by Pilooz ");
-
-  // background color
-  for (int i = 0; i < 255; i++) {
-    lcd_setbacklight(i, 0, 255-i);
-    delay(5);
-  }
-  for (int i = 0; i < 255; i++) {
-    lcd_setbacklight(255-i, i, 0);
-    delay(5);
-  }
-  for (int i = 0; i < 255; i++) {
-    lcd_setbacklight(0, 255-i, i);
-    delay(5);
-  }
-}
-
-/*************************************************
- * Displaying data on lcd 
- * Step : APP_RESET 
- * displaying :
- *  Reset values ?
- *  [No] [Yes]
- **************************************************/
-void lcd_reset_mode() {
-  String menus1[] = {
-    "Reset values ?  ", "Reset values ?  "};
-  String menus2[] = {
-    "   [No]  Yes    ", "    No   [Yes]  " };
-  if (lastReportedPos < encoderPos ) { 
-    app_choice++; 
-  } 
-  if (app_choice < 0 || app_choice > 3) { 
-    app_choice = 0; 
-  }      
-  // background color Orange
-  lcd_setbacklight(255, 50, 0);
-  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
-}
-
-/*************************************************
- * Displaying data on lcd 
- * Step : APP_OPTIONS
- * displaying :
- *  Choice ?
- *  [Run] [Set] [x] >
- **************************************************/
-void lcd_options_mode() {
-  String menus1[] = {
-    "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "        };
-  String menus2[] = {
-    " set     reset  "," set     reset  ","[set]    reset  "," set    [reset] "        };
-  if (lastReportedPos < encoderPos ) { 
-    app_choice++; 
-  } 
-  //    else { 
-  //      app_choice--; 
-  //    }
-  if (app_choice < 0 || app_choice > 3) { 
-    app_choice = 0; 
-  }      
-  // background color Orange
-  lcd_setbacklight(255, 50, 0);
-  //menu2 = (String)encoderPos + " / " + (String)app_choice; // "turning button  ";
-  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
-}
-
-/*************************************************
- * Displaying data on lcd 
- * Step : APP_SETTING
- * Turning the rotary enc CW increments by 0.1 L
- * turninc CCW decrements by 0.1 L
- * displaying :
- *   Target volume ?
- *   0.0 L 
- **************************************************/
-void lcd_setting_mode() {  
-  if (encoderPos < 0) {
-    encoderPos = 0;
-  }
-  app_target_liters = encoderPos * ENC_STEP;
-  // background color Orange
-  lcd_setbacklight(255, 165, 0);
-  // first line
-  lcd.setCursor(0, 0);
-  lcd.print("Target volume ? "); 
-  // second line
-  lcd.setCursor(0, 1);
-  lcd.print(app_target_liters);
-  lcd.print(" L ");
-}
-
-/*************************************************
- * Displaying data on lcd 
- * Step : APP_WAITING
- * displaying :
- *  flowrate L/s     total volume L
- *  percent flow %   current passed volume / desired volume 
- **************************************************/
-void lcd_waiting_mode() {
-  float liters = calculateLiters(flw_pulses);
-  float total_liters = calculateLiters(flw_total_pulses);
-  float pct = 0;
-  if (app_target_liters > 0) {
-    pct = (int)(100 *liters / app_target_liters);
-  }
-
-  if (vlv_status == HIGH) {
-    // Set backlight to a various color that say it's open.
-    // The color changes on pct increase.
-    lcd_adjust_backlight(pct);
-  }
-
-  // see if we got 99% of target?
-  if (pct >= 99) {
-    pct = 100;
-    // Forcing waiting State, this stat closes valve
-    app_set_state(APP_WAITING);
-  }
-
-  // first line
-  lcd.setCursor(0, 0);
-  float frac = (flw_rate - int(flw_rate)) * 10;
-  lcd.print(frac, 2);
-  lcd.print("L/min "); 
-//  lcd.print(flw_rate, 0);
-//  lcd.print("Hz "); 
-  lcd.print(total_liters);
-  lcd.print(" L");
-  // second line
-  lcd.setCursor(0, 1);
-  lcd.print(pct, 0);
-  lcd.print("% ");
-  lcd.print(liters);
-  lcd.print("/");
-  lcd.print(app_target_liters);
-  lcd.print(" L");
-}
-
-/*************************************************
- * Displaying data on lcd 
- * Step : APP_RUNNING
- * displaying :
- *  flowrate L/s     total volume L
- *  percent flow %   current passed volume / desired volume  
- **************************************************/
-void lcd_running_mode() {
-  // Same screen as waiting mode for the moment
-  lcd_waiting_mode();
-}
-
-/*************************************************
- * Setup for serial
- **************************************************/
-void lcd_message(String msg) {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("/!\\ /!\\ /!\\ /!\\ ");
-  lcd.setCursor(0, 1);
-  lcd.print(msg);
-}  
-
-/*************************************************
  * Setup for serial
  **************************************************/
 void serial_setup() {
@@ -468,9 +234,10 @@ void setup() {
   lcd_splash_screen();
 
   // Solenoid Valve
+  valve.close();
   pinMode(VLV, OUTPUT);
   digitalWrite(VLV, LOW);
-  vlv_status = 0;
+  //vlv_status = 0;
 
   // Liquid Flow meter settings
   pinMode(FLW, INPUT_PULLUP);
@@ -520,13 +287,15 @@ void loop(){
 
     switch (app_get_state()) {
 //    case APP_SPLASH: // App is waiting for sensors or buttons changes : Valve is closed
-//      vlv_close();
+//      valve.close();
+    	flw_read(false);
 //      // displaying splash screen
 //      lcd_splash_screen();
 //      // push button may open valve after APP_OPTIONS mode
 //      break;
     case APP_WAITING: // App is waiting for sensors or buttons changes : Valve is closed
-      vlv_close();
+      valve.close();
+      flw_read(false);
       // Background color is blue, dodgerBlue.
       lcd_setbacklight(30, 144, 255);
       // Reading saved value of total
@@ -536,7 +305,8 @@ void loop(){
       // push button may open valve after APP_OPTIONS mode
       break;
     case APP_RUNNING: // App is running water thru valve : valve is opened
-      vlv_open();
+      valve.open();
+      flw_read(true);
       // Saving the current flw_pulses
       eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
       // Saving total pulses
@@ -549,20 +319,23 @@ void loop(){
       // push button may interrupt to close valve and return to APP_WAITING mode
       break;
     case APP_SETTING: // App is in setting mode, valve is closed
-      vlv_close();
+      valve.close();
+      flw_read(false);
       // displying 'setting mode' on first line and desired volume to adjust on second line
       lcd_setting_mode();
       // turing the rotary encoder adjust desired volume of water,
       // push button may set adjusted volume of water and return to APP_WAITING mode
       break;
     case APP_OPTIONS: // App is in confirmation mode, valve is closed
-      vlv_close();
+      valve.close();
+      flw_read(false);
       lcd_options_mode();
       // push button may set desired volume and return to APP_WAITING mode
       break;
     default:
       // Close the valve by security
-      vlv_close();
+      valve.close();
+      flw_read(false);
       // see if we need to reset something ? treating with errors
       lcd_message(app_error);
       app_set_state(APP_ERROR);
@@ -689,6 +462,211 @@ void timerIsr() {
 
 
 
+/*************************************************
+ * Printing the 2 lines screen to lcd
+ **************************************************/
+void lcd_print_screen(String l1, String l2) {
+  lcd.setCursor(0, 0);
+  lcd.print(l1); 
+  lcd.setCursor(0, 1);
+  lcd.print(l2); 
+}
+
+/*************************************************
+ * Displaying a splash screen at startup
+ **************************************************/
+void lcd_splash_screen() {
+  lcd_print_screen(" BrewFlowMeter ", " v" + app_version + " by Pilooz ");
+
+  // background color
+  for (int i = 0; i < 255; i++) {
+    lcd_setbacklight(i, 0, 255-i);
+    delay(5);
+  }
+  for (int i = 0; i < 255; i++) {
+    lcd_setbacklight(255-i, i, 0);
+    delay(5);
+  }
+  for (int i = 0; i < 255; i++) {
+    lcd_setbacklight(0, 255-i, i);
+    delay(5);
+  }
+}
+
+/*************************************************
+ * Displaying data on lcd 
+ * Step : APP_RESET 
+ * displaying :
+ *  Reset values ?
+ *  [No] [Yes]
+ **************************************************/
+void lcd_reset_mode() {
+  String menus1[] = {
+    "Reset values ?  ", "Reset values ?  "};
+  String menus2[] = {
+    "   [No]  Yes    ", "    No   [Yes]  " };
+  if (lastReportedPos < encoderPos ) { 
+    app_choice++; 
+  } 
+  if (app_choice < 0 || app_choice > 3) { 
+    app_choice = 0; 
+  }      
+  // background color Orange
+  lcd_setbacklight(255, 50, 0);
+  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
+}
+
+/*************************************************
+ * Displaying data on lcd 
+ * Step : APP_OPTIONS
+ * displaying :
+ *  Choice ?
+ *  [Run] [Set] [x] >
+ **************************************************/
+void lcd_options_mode() {
+  String menus1[] = {
+    "[cancel]   run  "," cancel   [run] "," cancel    run  "," cancel    run  "        };
+  String menus2[] = {
+    " set     reset  "," set     reset  ","[set]    reset  "," set    [reset] "        };
+  if (lastReportedPos < encoderPos ) { 
+    app_choice++; 
+  } 
+  //    else { 
+  //      app_choice--; 
+  //    }
+  if (app_choice < 0 || app_choice > 3) { 
+    app_choice = 0; 
+  }      
+  // background color Orange
+  lcd_setbacklight(255, 50, 0);
+  //menu2 = (String)encoderPos + " / " + (String)app_choice; // "turning button  ";
+  lcd_print_screen(menus1[app_choice], menus2[app_choice]);
+}
+
+/*************************************************
+ * Displaying data on lcd 
+ * Step : APP_SETTING
+ * Turning the rotary enc CW increments by 0.1 L
+ * turninc CCW decrements by 0.1 L
+ * displaying :
+ *   Target volume ?
+ *   0.0 L 
+ **************************************************/
+void lcd_setting_mode() {  
+  if (encoderPos < 0) {
+    encoderPos = 0;
+  }
+  app_target_liters = encoderPos * ENC_STEP;
+  // background color Orange
+  lcd_setbacklight(255, 165, 0);
+  // first line
+  lcd.setCursor(0, 0);
+  lcd.print("Target volume ? "); 
+  // second line
+  lcd.setCursor(0, 1);
+  lcd.print(app_target_liters);
+  lcd.print(" L ");
+}
+
+/*************************************************
+ * Displaying data on lcd 
+ * Step : APP_WAITING
+ * displaying :
+ *  flowrate L/s     total volume L
+ *  percent flow %   current passed volume / desired volume 
+ **************************************************/
+void lcd_waiting_mode() {
+  float liters = calculateLiters(flw_pulses);
+  float total_liters = calculateLiters(flw_total_pulses);
+  float pct = 0;
+  if (app_target_liters > 0) {
+    pct = (int)(100 *liters / app_target_liters);
+  }
+
+  if (valve.status == HIGH) {
+    // Set backlight to a various color that say it's open.
+    // The color changes on pct increase.
+    lcd_adjust_backlight(pct);
+  }
+
+  // see if we got 99% of target?
+  if (pct >= 99) {
+    pct = 100;
+    // Forcing waiting State, this stat closes valve
+    app_set_state(APP_WAITING);
+  }
+
+  // first line
+  lcd.setCursor(0, 0);
+  float frac = (flw_rate - int(flw_rate)) * 10;
+  lcd.print(frac, 2);
+  lcd.print("L/min "); 
+//  lcd.print(flw_rate, 0);
+//  lcd.print("Hz "); 
+  lcd.print(total_liters);
+  lcd.print(" L");
+  // second line
+  lcd.setCursor(0, 1);
+  lcd.print(pct, 0);
+  lcd.print("% ");
+  lcd.print(liters);
+  lcd.print("/");
+  lcd.print(app_target_liters);
+  lcd.print(" L");
+}
+
+/*************************************************
+ * Displaying data on lcd 
+ * Step : APP_RUNNING
+ * displaying :
+ *  flowrate L/s     total volume L
+ *  percent flow %   current passed volume / desired volume  
+ **************************************************/
+void lcd_running_mode() {
+  // Same screen as waiting mode for the moment
+  lcd_waiting_mode();
+}
+
+/*************************************************
+ * Setup for serial
+ **************************************************/
+void lcd_message(String msg) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("/!\\ /!\\ /!\\ /!\\ ");
+  lcd.setCursor(0, 1);
+  lcd.print(msg);
+}  
+
+/*************************************************
+ * set backlight color on lcd
+ **************************************************/
+void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
+  // normalize the red LED - its brighter than the rest!
+  r = map(r, 0, 255, 0, 100);
+  g = map(g, 0, 255, 0, 150);
+  r = map(r, 0, 255, 0, lcd_brightness);
+  g = map(g, 0, 255, 0, lcd_brightness);
+  b = map(b, 0, 255, 0, lcd_brightness);
+  // common anode so invert!
+  r = map(r, 0, 255, 255, 0);
+  g = map(g, 0, 255, 255, 0);
+  b = map(b, 0, 255, 255, 0);
+  analogWrite(LCD_R, r);
+  analogWrite(LCD_G, g);
+  analogWrite(LCD_B, b);
+}
+
+/*************************************************
+ * adusting backlight color on lcd 
+ * dealing with pct of volume flown
+ **************************************************/
+void lcd_adjust_backlight(int pct) {
+  // mapping pct between 0 and 255
+  int p = (int)(255*pct/100);
+  //map(pct, 0, 100, 0, 100);
+  lcd_setbacklight(p, 255-p, 0);
+}
 
 
 
