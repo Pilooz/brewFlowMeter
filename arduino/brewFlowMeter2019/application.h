@@ -94,6 +94,8 @@ void application_set_current_state() {
 
     case APP_SETTING:
       Serial.print("APP_SETTING -> ");
+      // Save set value
+      eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);
       app_status = APP_WAITING;
       break;
 
@@ -270,7 +272,7 @@ void handle_application_flometer() {
       float frac = (flw_rate - int(flw_rate)) * 10;
 
       flowmeter_calculate_pct_of_target_liters();
-      
+
       if (valve.status() == HIGH) {
         // Set backlight to a various color that say it's open.
         // The color changes on pct increase.
@@ -290,6 +292,10 @@ void handle_application_flometer() {
       lcd_running_mode(frac, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
       lcd_print();
 
+      // Saving current flow values in EEPROM
+      eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
+      eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
+      
       flowmeter_was_turning = false;
     }
   }

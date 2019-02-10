@@ -56,7 +56,15 @@ void flowmeter_reset() {
   eeprom_write(EEPROM_CURRENT_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TOTAL_PULSES_ADDR, 0);
   eeprom_write(EEPROM_TARGET_LITERS_ADDR, 0);
-  //asm volatile (" jmp 0");
+}
+
+/*************************************************
+   Storing all values
+ **************************************************/
+void flometer_store_data() {
+  eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
+  eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
+  eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);  
 }
 
 /*************************************************
@@ -121,16 +129,6 @@ void flowmeter_read() {
   flw_rate = 1000.0;
   flw_rate /= flw_last_ratetimer; // in hertz
   flw_last_ratetimer = 0;
-}
-
-/*************************************************
-   flowsensor reading and saving values in EEPROM
- **************************************************/
-void flowmeter_save_values() {
-  // Saving the current flw_pulses
-  eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
-  // Saving total pulses
-  eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
 }
 
 /*************************************************

@@ -155,25 +155,11 @@ void lcd_setting_mode(String nb_liters) {
   percent flow %   current passed volume / desired volume
 **************************************************/
 void lcd_waiting_mode(float flow_rate, float total_liters, float pct, float flow_liters) {
-
-  //  // first line
-  //  lcd.setCursor(0, 0);
-  screen_line1 = String(flow_rate, 2) + "L/min " + String(total_liters) + " L";
-  //lcd.print(frac, 2);
-  //  lcd.print("L/min ");
-  ////  lcd.print(flw_rate, 0);
-  ////  lcd.print("Hz ");
-  //  lcd.print(total_liters);
-  //  lcd.print(" L");
-  //  // second line
+  //char rate[4];
+  //dtostrf(flow_rate, 4, 1, rate);
+  //screen_line1 = String(rate) + "L/min " + String(total_liters) + " L";
+  screen_line1 = "Total     " + String(total_liters) + " L";
   screen_line2 = String(int(pct)) + "% " + String(flow_liters) + "/" + String(app_target_liters) + " L";
-  //  lcd.setCursor(0, 1);
-  //  lcd.print(pct, 0);
-  //  lcd.print("% ");
-  //  lcd.print(liters);
-  //  lcd.print("/");
-  //  lcd.print(app_target_liters);
-  //  lcd.print(" L");
 }
 
 /*************************************************
@@ -208,7 +194,6 @@ void lcd_test_screens() {
 
   // Testing LCD (All screens)
   // Options Screen
-  //set_screen_choice();
   lcd.clear();
   for (int x = 0; x <= 3; x++) {
     screen_choice = x;
@@ -218,7 +203,6 @@ void lcd_test_screens() {
   }
 
   // Reset Screen
-  //set_screen_choice();
   lcd.clear();
   for (int x = 0; x <= 1; x++) {
     screen_choice = x;
@@ -228,7 +212,6 @@ void lcd_test_screens() {
   }
 
   // Settings Screen
-  //init_encoder();
   lcd.clear();
   for (int x = 0; x < 100; x++) {
     //app_target_liters = encoderPos * ENC_STEP;
