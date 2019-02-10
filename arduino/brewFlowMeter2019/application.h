@@ -25,6 +25,8 @@
 // displaying a confirmation message on first line and  [run] [set] [x]
 // push button may set desired volume and return to APP_RUNNING, APP_SETTING, or APP_WAITING mode
 #define APP_OPTIONS 4
+// Reseting app, erasing all stored values
+#define APP_RESET 5
 
 // Choices on Options screen
 //#define CHOICE_UNDEFINED -100
@@ -36,9 +38,27 @@
 // Application variables
 int app_status;
 int app_previous_status;
-int app_choice;
 String app_error = "";
 
+/*************************************************
+  Application Setup (include to general setup)
+**************************************************/
+void application_setup() {
+  app_previous_status = APP_START;
+  app_status = APP_SPLASH;
+  button_was_pushed = true; // Simulate the first button push to enter in splash screen.
+  //app_choice = CHOICE_UNDEFINED;
+}
+
+/*************************************************
+  Application Reset Erasing all stored values
+**************************************************/
+void application_reset() {
+  encoder_setup();
+  flowmeter_reset();
+  flowmeter_setup();
+  application_setup();
+}
 
 /*************************************************
    Set current application state, taking the
@@ -47,6 +67,10 @@ String app_error = "";
 void application_set_current_state() {
   // See where we were before this event
   switch (app_previous_status) {
+    case APP_RESET:
+      application_reset();
+    // no break here, to go to case APP_START
+
     case APP_START:
       Serial.print("APP_START -> ");
       // Starting application
@@ -75,11 +99,6 @@ void application_set_current_state() {
 
     case APP_OPTIONS:
       Serial.print("APP_OPTIONS -> ");
-      //      if (app_choice != CHOICE_UNDEFINED) {
-      //        app_status = app_choice;
-      //      } else {
-      //        app_status = APP_OPTIONS;
-      //      }
       break;
 
     default:
@@ -107,8 +126,6 @@ void application_set_current_state() {
    /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\
  **************************************************/
 void application_display() {
-  float total_liters;
-  float liters;
 
   // App is waiting for sensors or buttons changes : Valve is closed
   if ( app_status == APP_SPLASH ) {
@@ -125,10 +142,11 @@ void application_display() {
   if ( app_status == APP_WAITING ) {
     Serial.println(" APP_WAITING");
     valve.close();
+    flowmeter_calculate_pct_of_target_liters();
     // Background color is blue, dodgerBlue.
     lcd_setbacklight(30, 144, 255);
     lcd.clear();
-    lcd_waiting_mode(0.0, total_liters, 0.0, liters);
+    lcd_waiting_mode(0.0, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
     lcd_print();
   }
 
@@ -145,8 +163,6 @@ void application_display() {
   if ( app_status == APP_SETTING ) {
     Serial.println(" APP_SETTING");
     valve.close();
-    // Calculate target liters
-    flowmeter_calculate_target_liters();
     lcd.clear();
     lcd_setting_mode(String(app_target_liters));
     lcd_print();
@@ -156,31 +172,8 @@ void application_display() {
   if ( app_status == APP_RUNNING ) {
     Serial.println(" APP_RUNNING");
     valve.open();
-    // displaying current passing volume, desired volume, total volume, flowrate
-    flowmeter_read();
-    float frac = (flw_rate - int(flw_rate)) * 10;
-
-    float pct = 0;
-    if (app_target_liters > 0) {
-      pct = (int)(100 * liters / app_target_liters);
-    }
-
-    if (valve.status() == HIGH) {
-      // Set backlight to a various color that say it's open.
-      // The color changes on pct increase.
-      lcd_adjust_backlight(pct);
-    }
-
-    // see if we got 99% of target?
-    if (pct >= 99) {
-      pct = 100;
-      // Forcing waiting State, this stat closes valve
-      app_status = APP_WAITING;
-    }
-
-
     lcd.clear();
-    lcd_running_mode(0.0, flowmeter_total_liters, pct, flowmeter_liters);
+    lcd_running_mode(0.0, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
     lcd_print();
   }
 
@@ -226,9 +219,7 @@ void handle_application_choices() {
           break;
         case CHOICE_RESET:
           Serial.println("CHOICE_RESET");
-          //flowmeter_reset();
-          app_choice = APP_SPLASH;
-          //lcd_splash_screen();
+          app_status = APP_RESET;
           break;
         default:
           break;
@@ -238,18 +229,68 @@ void handle_application_choices() {
       lcd_options_mode();
       lcd_print();
       delay(300); // debounce
+    } else {
+
+      if (app_status == APP_SETTING) {
+        flowmeter_calculate_target_liters();
+        lcd.clear();
+        lcd_setting_mode(String(app_target_liters));
+        lcd_print();
+      }
     }
+
     button_was_turned = false;
   }
 
 }
 
 /*************************************************
-  Application Setup (include to general setup)
-**************************************************/
-void application_setup() {
-  app_previous_status = APP_START;
-  app_status = APP_SPLASH;
-  button_was_pushed = true; // Simulate the first button push to enter in splash screen.
-  //app_choice = CHOICE_UNDEFINED;
+   applications menu choices controller
+ **************************************************/
+void handle_application_set_target_liters() {
+  if ( button_was_turned ) {
+    // Setting targt liters
+    if (app_status == APP_SETTING) {
+      flowmeter_calculate_target_liters();
+      lcd.clear();
+      lcd_setting_mode(String(app_target_liters));
+      lcd_print();
+    }
+    button_was_turned = false;
+  }
+}
+
+/*************************************************
+   applications flometer reading
+ **************************************************/
+void handle_application_flometer() {
+  if (app_status == APP_RUNNING) {
+    if (flowmeter_was_turning) {
+      // displaying current passing volume, desired volume, total volume, flowrate
+      float frac = (flw_rate - int(flw_rate)) * 10;
+
+      flowmeter_calculate_pct_of_target_liters();
+      
+      if (valve.status() == HIGH) {
+        // Set backlight to a various color that say it's open.
+        // The color changes on pct increase.
+        lcd_adjust_backlight(app_pct_target_liters);
+      }
+
+      // see if we got 100% of target?
+      if (app_pct_target_liters >= 100) {
+        app_pct_target_liters = 100;
+        // Forcing waiting State, this stat closes valve
+        app_status = APP_WAITING;
+        // Simulate a state change
+        button_was_pushed = true;
+      }
+
+      lcd.clear();
+      lcd_running_mode(frac, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
+      lcd_print();
+
+      flowmeter_was_turning = false;
+    }
+  }
 }

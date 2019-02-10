@@ -17,7 +17,7 @@ Valve valve(VLV);
 void setup()
 {
   Serial.begin (115200);
-  
+
   // Setup LCD
   lcd_setup();
 
@@ -29,14 +29,16 @@ void setup()
 
   // Setup applcation
   application_setup();
-  
+
 }
+long mil = 0;
+
 void loop() {
   handle_application_screens();
   handle_application_choices();
-  
+  handle_application_flometer();
 }
 
-  /*********************************************************************************************************
+/*********************************************************************************************************
   END FILE
 *********************************************************************************************************/

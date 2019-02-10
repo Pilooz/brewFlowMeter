@@ -4,7 +4,7 @@ volatile int encoderPosCount;
 volatile int enc_clk_last;
 volatile int enc_clk_val, enc_dt_val;
 volatile long previousMillisEncoder;
-volatile boolean testing_mode = true;
+volatile boolean testing_mode = false;
 
 // For application controle : a push changes screen 
 // This variable becomes true when button is pushed

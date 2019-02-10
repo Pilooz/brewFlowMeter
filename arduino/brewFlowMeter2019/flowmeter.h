@@ -23,7 +23,9 @@ volatile float flw_rate;
 // Expose these variables to application
 // Target of number of liter to deliver
 float app_target_liters = 0;
+float app_pct_target_liters = 0; // % of target reached
 float flowmeter_liters, flowmeter_total_liters;
+boolean flowmeter_was_turning = false;
 
 /*************************************************
    Writing a float in EEPROM
@@ -69,6 +71,16 @@ void flowmeter_calculate_target_liters() {
 }
 
 /*************************************************
+   Calculate the pct of target liters we have reached
+ **************************************************/
+void flowmeter_calculate_pct_of_target_liters() {
+  app_pct_target_liters = 0;
+  if (app_target_liters > 0) {
+    app_pct_target_liters = (int)(100 * flowmeter_liters / app_target_liters);
+  }
+}
+
+/*************************************************
   volume calculations
 **************************************************/
 float calculateLiters(uint16_t p) {
@@ -101,6 +113,9 @@ void flowmeter_read() {
     //low to high transition!
     flw_total_pulses++;
     flw_pulses++;
+    flowmeter_was_turning = true;
+    flowmeter_liters = calculateLiters(flw_pulses);
+    flowmeter_total_liters = calculateLiters(flw_total_pulses);
   }
   flw_last_pinstate = x;
   flw_rate = 1000.0;
@@ -142,8 +157,6 @@ void flowmeter_setup() {
    Testing flowmeter calculations
  **************************************************/
 void flowmeter_test() {
-  flowmeter_liters = calculateLiters(flw_pulses);
-  flowmeter_total_liters = calculateLiters(flw_total_pulses);
   Serial.println(flowmeter_liters);
   Serial.println(flowmeter_total_liters);
   delay(500);
