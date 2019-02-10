@@ -7,7 +7,6 @@
 #include "valve.h"
 #include "encoder.h"
 #include "flowmeter.h"
-
 Valve valve(VLV);
 #include "screens.h"
 #include "application.h"
@@ -32,10 +31,10 @@ void setup()
   application_setup();
   
 }
-
 void loop() {
   handle_application_screens();
   handle_application_choices();
+  
 }
 
   /*********************************************************************************************************

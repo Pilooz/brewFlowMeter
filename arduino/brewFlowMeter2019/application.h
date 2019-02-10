@@ -27,7 +27,7 @@
 #define APP_OPTIONS 4
 
 // Choices on Options screen
-#define CHOICE_UNDEFINED -100
+//#define CHOICE_UNDEFINED -100
 #define CHOICE_CANCEL   0
 #define CHOICE_RUNNING  1
 #define CHOICE_SETTING  2
@@ -75,9 +75,11 @@ void application_set_current_state() {
 
     case APP_OPTIONS:
       Serial.print("APP_OPTIONS -> ");
-      if (app_choice != CHOICE_UNDEFINED) {
-        app_status = app_choice;
-      }
+      //      if (app_choice != CHOICE_UNDEFINED) {
+      //        app_status = app_choice;
+      //      } else {
+      //        app_status = APP_OPTIONS;
+      //      }
       break;
 
     default:
@@ -93,92 +95,95 @@ void application_set_current_state() {
 /*************************************************
    Handling current state
    Displaying screens
+
+   /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\
+   On fait des IF car l'instruction Switch
+   est boguée lorsqu'il y a plus d'un certains nb de lignes
+   elle déconne et ne prend pas en compte les derniers CASE.
+
+   Switch instruction seems to be buggy when it has
+   a certain number of lines in it.
+   Last cases are not taken in account !
+   /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\
  **************************************************/
 void application_display() {
   float total_liters;
   float liters;
 
-  switch (app_status) {
-    case APP_SPLASH: // App is waiting for sensors or buttons changes : Valve is closed
-      Serial.println(" APP_SPLASH");
-      valve.close();
-      // displaying splash screen
-      lcd.clear();
-      lcd_splash_screen();
-      lcd_print();
-      lcd_change_backlight();
-      break;
-
-    case APP_WAITING: // App is running water thru valve : valve is closed
-      Serial.println(" APP_WAITING");
-      valve.close();
-      // Background color is blue, dodgerBlue.
-      lcd_setbacklight(30, 144, 255);
-      lcd.clear();
-      lcd_waiting_mode(0.0, total_liters, 0.0, liters);
-      lcd_print();
-      break;
-
-    case APP_RUNNING: // App is waiting for sensors or buttons changes : Valve is opened
-      Serial.println(" APP_RUNNING");
-      valve.open();
-      // displaying current passing volume, desired volume, total volume, flowrate
-      //flowmeter_read();
-      //float frac = (flw_rate - int(flw_rate)) * 10;
-
-      float pct = 0;
-//      if (app_target_liters > 0) {
-//        pct = (int)(100 * liters / app_target_liters);
-//      }
-//
-//      if (valve.status() == HIGH) {
-//        // Set backlight to a various color that say it's open.
-//        // The color changes on pct increase.
-//        lcd_adjust_backlight(pct);
-//      }
-//
-//      // see if we got 99% of target?
-//      if (pct >= 99) {
-//        pct = 100;
-//        // Forcing waiting State, this stat closes valve
-//        app_status = APP_WAITING;
-//      }
-
-
-      lcd.clear();
-      lcd_running_mode(0.0, flowmeter_total_liters, pct, flowmeter_liters);
-      lcd_print();
-      break;
-
-    case APP_SETTING: // App is in setting mode, valve is closed
-      Serial.println(" APP_SETTING");
-      valve.close();
-      // Calculate target liters
-      flowmeter_calculate_target_liters();
-      lcd.clear();
-      lcd_setting_mode(String(app_target_liters));
-      lcd_print();
-      break;
-
-    case APP_OPTIONS: // App is in confirmation mode, valve is closed
-      Serial.println(" APP_OPTIONS");
-      valve.close();
-      lcd.clear();
-      lcd_options_mode();
-      lcd_print();
-      break;
-
-    default:
-      Serial.println(" APP_ERROR");
-      // Close the valve by security
-      valve.close();
-      // see if we need to reset something ? treating with errors
-      lcd.clear();
-      lcd_message(app_error);
-      lcd_print();
-      app_status = APP_ERROR;
-      break;
+  // App is waiting for sensors or buttons changes : Valve is closed
+  if ( app_status == APP_SPLASH ) {
+    Serial.println(" APP_SPLASH");
+    valve.close();
+    // displaying splash screen
+    lcd.clear();
+    lcd_splash_screen();
+    lcd_print();
+    lcd_change_backlight();
   }
+
+  // Waiting for a button push to start running water
+  if ( app_status == APP_WAITING ) {
+    Serial.println(" APP_WAITING");
+    valve.close();
+    // Background color is blue, dodgerBlue.
+    lcd_setbacklight(30, 144, 255);
+    lcd.clear();
+    lcd_waiting_mode(0.0, total_liters, 0.0, liters);
+    lcd_print();
+  }
+
+  // Displays configuration menu
+  if ( app_status == APP_OPTIONS ) {
+    Serial.println(" APP_OPTIONS");
+    valve.close();
+    lcd.clear();
+    lcd_options_mode();
+    lcd_print();
+  }
+
+  // Displays screen to se target liters
+  if ( app_status == APP_SETTING ) {
+    Serial.println(" APP_SETTING");
+    valve.close();
+    // Calculate target liters
+    flowmeter_calculate_target_liters();
+    lcd.clear();
+    lcd_setting_mode(String(app_target_liters));
+    lcd_print();
+  }
+
+  // Running water thru valve and counting via flowmeter
+  if ( app_status == APP_RUNNING ) {
+    Serial.println(" APP_RUNNING");
+    valve.open();
+    // displaying current passing volume, desired volume, total volume, flowrate
+    flowmeter_read();
+    float frac = (flw_rate - int(flw_rate)) * 10;
+
+    float pct = 0;
+    if (app_target_liters > 0) {
+      pct = (int)(100 * liters / app_target_liters);
+    }
+
+    if (valve.status() == HIGH) {
+      // Set backlight to a various color that say it's open.
+      // The color changes on pct increase.
+      lcd_adjust_backlight(pct);
+    }
+
+    // see if we got 99% of target?
+    if (pct >= 99) {
+      pct = 100;
+      // Forcing waiting State, this stat closes valve
+      app_status = APP_WAITING;
+    }
+
+
+    lcd.clear();
+    lcd_running_mode(0.0, flowmeter_total_liters, pct, flowmeter_liters);
+    lcd_print();
+  }
+
 }
 
 /*************************************************
@@ -186,14 +191,16 @@ void application_display() {
  **************************************************/
 void handle_application_screens() {
   if ( button_was_pushed ) {
+    // Set state from previous state to current state
     application_set_current_state();
+    // Displays new screen state
     application_display();
     button_was_pushed = false;
   }
 }
 
 /*************************************************
-   applications choices controller
+   applications menu choices controller
  **************************************************/
 void handle_application_choices() {
   if ( button_was_turned ) {
@@ -207,15 +214,15 @@ void handle_application_choices() {
           Serial.println("CHOICE_CANCEL");
           // init flow meter variables
           //flw_pulses_old = flw_pulses;
-          app_choice = APP_WAITING; // Canceling any action, go to waiting state
+          app_status = APP_WAITING; // Canceling any action, go to waiting state
           break;
         case CHOICE_RUNNING:
           Serial.println("CHOICE_RUNNING");
-          app_choice = APP_RUNNING; // Go to running mode, valve opened
+          app_status = APP_RUNNING; // Go to running mode, valve opened
           break;
         case CHOICE_SETTING:
           Serial.println("CHOICE_SETTING");
-          app_choice = APP_SETTING;
+          app_status = APP_SETTING;
           break;
         case CHOICE_RESET:
           Serial.println("CHOICE_RESET");
@@ -230,7 +237,7 @@ void handle_application_choices() {
       lcd.clear();
       lcd_options_mode();
       lcd_print();
-      //delay(300); // debounce
+      delay(300); // debounce
     }
     button_was_turned = false;
   }
@@ -244,4 +251,5 @@ void application_setup() {
   app_previous_status = APP_START;
   app_status = APP_SPLASH;
   button_was_pushed = true; // Simulate the first button push to enter in splash screen.
+  //app_choice = CHOICE_UNDEFINED;
 }
