@@ -59,15 +59,6 @@ void flowmeter_reset() {
 }
 
 /*************************************************
-   Storing all values
- **************************************************/
-void flometer_store_data() {
-  eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
-  eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
-  eeprom_write(EEPROM_TARGET_LITERS_ADDR, app_target_liters);  
-}
-
-/*************************************************
    Calculate target liters in function
    of a predefined step
  **************************************************/
@@ -145,6 +136,7 @@ void flowmeter_setup() {
   flw_pulses = eeprom_read(EEPROM_CURRENT_PULSES_ADDR);
   flw_total_pulses = eeprom_read(EEPROM_TOTAL_PULSES_ADDR);
   app_target_liters = eeprom_read(EEPROM_TARGET_LITERS_ADDR);
+  
   // Init variables
   flw_pulses_old = flw_pulses;
   flowmeter_liters = calculateLiters(flw_pulses);

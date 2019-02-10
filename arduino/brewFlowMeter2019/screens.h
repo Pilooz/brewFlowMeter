@@ -67,25 +67,6 @@ void lcd_setbacklight(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 /*************************************************
-   changes backlight color on lcd, with rainbow
- **************************************************/
-void lcd_change_backlight() {
-//  // background color
-//  for (int i = 0; i < 255; i++) {
-//    lcd_setbacklight(i, 0, 255 - i);
-//    delay(5);
-//  }
-//  for (int i = 0; i < 255; i++) {
-//    lcd_setbacklight(255 - i, i, 0);
-//    delay(5);
-//  }
-  for (int i = 0; i < 255; i++) {
-    lcd_setbacklight(0, 255 - i, i);
-    delay(5);
-  }
-}
-
-/*************************************************
    adusting backlight color on lcd
    dealing with pct of volume flown
  **************************************************/
@@ -189,7 +170,6 @@ void lcd_test_screens() {
   lcd.clear();
   lcd_splash_screen();
   lcd_print();
-  lcd_change_backlight();
   delay(1000);
 
   // Testing LCD (All screens)

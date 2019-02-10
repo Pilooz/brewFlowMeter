@@ -35,6 +35,9 @@
 #define CHOICE_SETTING  2
 #define CHOICE_RESET    3
 
+#define CHOICE_NO       0
+#define CHOICE_YES      1
+
 // Application variables
 int app_status;
 int app_previous_status;
@@ -73,7 +76,6 @@ void application_set_current_state() {
 
     case APP_START:
       Serial.print("APP_START -> ");
-      // Starting application
       app_status = APP_SPLASH;
       break;
 
@@ -128,16 +130,15 @@ void application_set_current_state() {
    /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\ /!\
  **************************************************/
 void application_display() {
+  lcd.clear();
 
   // App is waiting for sensors or buttons changes : Valve is closed
   if ( app_status == APP_SPLASH ) {
     Serial.println(" APP_SPLASH");
     valve.close();
     // displaying splash screen
-    lcd.clear();
+    lcd_setbacklight(30, 144, 255);
     lcd_splash_screen();
-    lcd_print();
-    lcd_change_backlight();
   }
 
   // Waiting for a button push to start running water
@@ -147,38 +148,31 @@ void application_display() {
     flowmeter_calculate_pct_of_target_liters();
     // Background color is blue, dodgerBlue.
     lcd_setbacklight(30, 144, 255);
-    lcd.clear();
     lcd_waiting_mode(0.0, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
-    lcd_print();
   }
 
   // Displays configuration menu
   if ( app_status == APP_OPTIONS ) {
     Serial.println(" APP_OPTIONS");
     valve.close();
-    lcd.clear();
     lcd_options_mode();
-    lcd_print();
   }
 
   // Displays screen to se target liters
   if ( app_status == APP_SETTING ) {
     Serial.println(" APP_SETTING");
     valve.close();
-    lcd.clear();
     lcd_setting_mode(String(app_target_liters));
-    lcd_print();
   }
 
   // Running water thru valve and counting via flowmeter
   if ( app_status == APP_RUNNING ) {
     Serial.println(" APP_RUNNING");
     valve.open();
-    lcd.clear();
     lcd_running_mode(0.0, flowmeter_total_liters, app_pct_target_liters, flowmeter_liters);
-    lcd_print();
   }
 
+  lcd_print();
 }
 
 /*************************************************
@@ -207,8 +201,6 @@ void handle_application_choices() {
       switch (screen_choice) {
         case CHOICE_CANCEL:
           Serial.println("CHOICE_CANCEL");
-          // init flow meter variables
-          //flw_pulses_old = flw_pulses;
           app_status = APP_WAITING; // Canceling any action, go to waiting state
           break;
         case CHOICE_RUNNING:
@@ -233,14 +225,14 @@ void handle_application_choices() {
       delay(300); // debounce
     } else {
 
+      // Setting mode 
       if (app_status == APP_SETTING) {
         flowmeter_calculate_target_liters();
         lcd.clear();
         lcd_setting_mode(String(app_target_liters));
         lcd_print();
-      }
+      } 
     }
-
     button_was_turned = false;
   }
 
@@ -295,7 +287,7 @@ void handle_application_flometer() {
       // Saving current flow values in EEPROM
       eeprom_write(EEPROM_CURRENT_PULSES_ADDR, flw_pulses);
       eeprom_write(EEPROM_TOTAL_PULSES_ADDR, flw_total_pulses);
-      
+
       flowmeter_was_turning = false;
     }
   }

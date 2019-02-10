@@ -31,7 +31,6 @@ void setup()
   application_setup();
 
 }
-long mil = 0;
 
 void loop() {
   handle_application_screens();
